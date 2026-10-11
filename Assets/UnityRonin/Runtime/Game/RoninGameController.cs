@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityRonin.Core.Combat;
 using UnityRonin.Core.Movement;
 using UnityRonin.Runtime.Camera;
 using UnityRonin.Runtime.Combat;
@@ -87,12 +88,26 @@ namespace UnityRonin.Runtime.Game
             _swipeZone.SetActive(true);
 
             _duelPresenter.DuelEnded += OnDuelEnded;
+            _duelPresenter.BeatResolved += OnBeatResolved;
             _duelPresenter.Begin(_duelSeed++);
+        }
+
+        /// <summary>Just the two riposte outcomes that are about the enemy's own reaction, not the player's
+        /// (see <see cref="EnemyCombatFeedback"/>) — everything else about scoring stays Core's business.</summary>
+        private void OnBeatResolved(DuelOutcome outcome)
+        {
+            if (_activeEnemy == null) return;
+            var feedback = _activeEnemy.GetComponent<EnemyCombatFeedback>();
+            if (feedback == null) return;
+
+            if (outcome == DuelOutcome.PlayerRiposteRetreated) feedback.HopBack(_locomotion.transform.position);
+            else if (outcome == DuelOutcome.PlayerRiposteCountered) feedback.FlashCounter();
         }
 
         private void OnDuelEnded(bool playerWon)
         {
             _duelPresenter.DuelEnded -= OnDuelEnded;
+            _duelPresenter.BeatResolved -= OnBeatResolved;
             _camera.SetDuelFocus(null);
             _swipeZone.SetActive(false);
             _joystickZone.SetActive(true);

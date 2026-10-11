@@ -66,8 +66,9 @@ namespace UnityRonin.Editor
 
         /// <summary>
         /// Builds a Windows standalone player of Demo.unity so tools/autoplay.ps1 can run it with
-        /// "-batchmode -nographics -autoplay": a desktop build is enough, since RoninAutopilot drives the
-        /// game through the same pointer-handler methods a touchscreen would call, never real hardware
+        /// "-batchmode -nographics -autoplay", or tools/demo.ps1 can run it with "-demo" to watch it
+        /// self-play on loop: a desktop build is enough, since RoninAutopilot and RoninDemoMode both drive
+        /// the game through the same pointer-handler methods a touchscreen would call, never real hardware
         /// input, so the lack of a touchscreen on this build target doesn't matter.
         /// </summary>
         [MenuItem("UnityRonin/Build Windows Player")]
@@ -78,7 +79,10 @@ namespace UnityRonin.Editor
                 scenes = new[] { "Assets/UnityRonin/Scenes/Demo.unity" },
                 locationPathName = PlayerPath,
                 target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.None
+                options = BuildOptions.None,
+                // This is the playtest/demo player, never a public release build, so every run (manual play,
+                // -autoplay, -demo) gets MindAttic.Capture: see Assets/StreamingAssets/capture.json.
+                extraScriptingDefines = new[] { "MINDATTIC_CAPTURE" }
             };
 
             var report = BuildPipeline.BuildPlayer(options);

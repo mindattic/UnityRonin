@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -13,7 +14,8 @@ namespace UnityRonin.Editor
     /// <summary>
     /// Builds Demo.unity from primitives, deterministically, every time it runs: a ground plane, a
     /// Samurai, a smart-follow camera, the bottom-half transparent joystick, a full-screen swipe zone,
-    /// a duel telegraph, and two enemy swordsmen. Change this builder, not the generated scene.
+    /// a duel telegraph, an engage-radius warning ring, and two enemy swordsmen. Change this builder, not
+    /// the generated scene.
     /// </summary>
     public static class DemoContentBuilder
     {
@@ -63,11 +65,11 @@ namespace UnityRonin.Editor
         /// live, and it kept ~1.7M "ForwardLit" variants (a ~36 GB, 15+ minute player build) rather than
         /// the handful this scene actually uses.
         /// </summary>
-        private static Material MakeMatteMaterial(Color color)
+        private static Material MakeMatteMaterial(Color color, float smoothness = 0.05f)
         {
             const string dir = "Assets/UnityRonin/Generated/Materials";
             System.IO.Directory.CreateDirectory(dir);
-            string path = $"{dir}/Matte_{ColorUtility.ToHtmlStringRGB(color)}.mat";
+            string path = $"{dir}/Matte_{ColorUtility.ToHtmlStringRGB(color)}_{smoothness:F2}.mat";
 
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (material == null)
@@ -77,8 +79,41 @@ namespace UnityRonin.Editor
             }
 
             material.color = color;
-            material.SetFloat("_Smoothness", 0.05f);
+            material.SetFloat("_Smoothness", smoothness);
             material.SetFloat("_Metallic", 0f);
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        /// <summary>
+        /// Same asset-backed-material reasoning as <see cref="MakeMatteMaterial"/> (the URP shader stripper
+        /// needs a saved asset, not an in-memory material, to know which variants are actually live), but
+        /// for the engage-radius ground ring: Unlit so it isn't affected by the scene's directional light,
+        /// alpha-blended so it reads as a translucent warning disc rather than a solid shape.
+        /// </summary>
+        private static Material MakeTransparentMaterial(Color color)
+        {
+            const string dir = "Assets/UnityRonin/Generated/Materials";
+            System.IO.Directory.CreateDirectory(dir);
+            string path = $"{dir}/Transparent_{ColorUtility.ToHtmlStringRGBA(color)}.mat";
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+
+            material.SetFloat("_Surface", 1f); // Transparent
+            material.SetFloat("_Blend", 0f); // Alpha
+            material.SetFloat("_Cull", 2f); // Back
+            material.SetFloat("_ZWrite", 0f);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetColor("_BaseColor", color);
             EditorUtility.SetDirty(material);
             return material;
         }
@@ -94,32 +129,30 @@ namespace UnityRonin.Editor
 
         private static GameObject BuildPlayer()
         {
-            var player = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            player.name = "Samurai";
+            var player = new GameObject("Samurai");
             player.transform.position = new Vector3(0f, 1f, 0f);
-            player.GetComponent<Renderer>().sharedMaterial = MakeMatteMaterial(new Color(0.75f, 0.73f, 0.68f));
-            Object.DestroyImmediate(player.GetComponent<CapsuleCollider>());
 
             var controller = player.AddComponent<CharacterController>();
             controller.height = 2f;
             controller.center = new Vector3(0f, 1f, 0f);
 
-            // Cosmetic props only: a BoxCollider parented inside the player's own CharacterController
-            // radius self-collides with it and can jam movement entirely, so both colliders are removed.
-            var sheathed = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            sheathed.name = "KatanaSheathed";
-            sheathed.transform.SetParent(player.transform);
-            sheathed.transform.localPosition = new Vector3(0.4f, 0.2f, -0.2f);
-            sheathed.transform.localScale = new Vector3(0.1f, 0.6f, 0.1f);
-            Object.DestroyImmediate(sheathed.GetComponent<BoxCollider>());
+            // The visual mesh lives on its own child, thinner than the default capsule's girth, so the
+            // collision envelope above (sized for comfortable movement) can stay as wide as it needs to be
+            // without the katana — held close against the torso — reading as embedded inside the body.
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            body.transform.SetParent(player.transform, false);
+            body.transform.localScale = new Vector3(0.6f, 1f, 0.6f);
+            body.GetComponent<Renderer>().sharedMaterial = MakeMatteMaterial(new Color(0.75f, 0.73f, 0.68f));
+            Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
 
-            var drawn = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            drawn.name = "KatanaDrawn";
-            drawn.transform.SetParent(player.transform);
-            drawn.transform.localPosition = new Vector3(0.5f, 0.6f, 0.5f);
-            drawn.transform.localRotation = Quaternion.Euler(45f, 0f, 0f);
-            drawn.transform.localScale = new Vector3(0.08f, 1f, 0.08f);
-            Object.DestroyImmediate(drawn.GetComponent<BoxCollider>());
+            // Cosmetic props only, never colliders: a collider parented inside the player's own
+            // CharacterController radius self-collides with it and can jam movement entirely.
+            var sheathed = BuildKatana("KatanaSheathed", player.transform,
+                localPosition: new Vector3(0.4f, 0.3f, -0.25f), localRotation: Quaternion.Euler(0f, 0f, 10f));
+
+            var drawn = BuildKatana("KatanaDrawn", player.transform,
+                localPosition: new Vector3(0.35f, 0.85f, 0.25f), localRotation: Quaternion.Euler(-70f, 15f, -15f));
             drawn.SetActive(false);
 
             player.AddComponent<SamuraiLocomotion>();
@@ -128,6 +161,40 @@ namespace UnityRonin.Editor
             BindPrivate(weapon, "_drawnKatana", drawn);
 
             return player;
+        }
+
+        /// <summary>
+        /// A katana from primitives — steel blade, gold tsuba, dark wrapped grip — ported from UnityEve's
+        /// own primitive katana (its local +Y also runs grip-to-tip, so the dimensions transfer directly):
+        /// a plain flat cube reads as a bat, not a blade, once the camera sits this close.
+        /// </summary>
+        private static GameObject BuildKatana(string name, Transform parent, Vector3 localPosition, Quaternion localRotation)
+        {
+            var steel = MakeMatteMaterial(new Color(0.86f, 0.9f, 0.95f), smoothness: 0.85f);
+            var wrap = MakeMatteMaterial(new Color(0.09f, 0.06f, 0.08f));
+            var gold = MakeMatteMaterial(new Color(0.78f, 0.6f, 0.22f), smoothness: 0.6f);
+
+            var katana = new GameObject(name);
+            katana.transform.SetParent(parent, false);
+            katana.transform.localPosition = localPosition;
+            katana.transform.localRotation = localRotation;
+
+            void Part(PrimitiveType type, string partName, Vector3 pos, Vector3 scale, Material mat)
+            {
+                var go = GameObject.CreatePrimitive(type);
+                Object.DestroyImmediate(go.GetComponent<Collider>());
+                go.name = partName;
+                go.transform.SetParent(katana.transform, false);
+                go.transform.localPosition = pos;
+                go.transform.localScale = scale;
+                go.GetComponent<Renderer>().sharedMaterial = mat;
+            }
+            // Local +Y runs from the grip (origin) to the tip.
+            Part(PrimitiveType.Cube, "Grip", Vector3.zero, new Vector3(0.034f, 0.27f, 0.034f), wrap);
+            Part(PrimitiveType.Cylinder, "Tsuba", new Vector3(0f, 0.145f, 0f), new Vector3(0.095f, 0.007f, 0.095f), gold);
+            Part(PrimitiveType.Cube, "Blade", new Vector3(0f, 0.55f, 0f), new Vector3(0.012f, 0.79f, 0.034f), steel);
+
+            return katana;
         }
 
         private static GameObject BuildCamera(Transform player)
@@ -207,23 +274,29 @@ namespace UnityRonin.Editor
             swipeReader = swipeZone.AddComponent<SwipeInputReader>();
             swipeZone.SetActive(false);
 
-            // Duel telegraph arrow, top-center.
+            // Duel telegraph: a real calligraphy-brush glyph (Yuji Syuku, OFL-licensed — see CREDITS.md) in
+            // the shape of the gesture symbol the player must answer, brushed on top-center.
             var telegraphGo = new GameObject("DuelTelegraph", typeof(RectTransform));
             telegraphGo.transform.SetParent(canvasGo.transform, false);
             var telegraphRect = telegraphGo.GetComponent<RectTransform>();
             telegraphRect.anchorMin = telegraphRect.anchorMax = new Vector2(0.5f, 0.85f);
             telegraphRect.sizeDelta = new Vector2(140f, 140f);
-            var arrowGo = new GameObject("Arrow", typeof(RectTransform));
-            arrowGo.transform.SetParent(telegraphGo.transform, false);
-            var arrowRect = arrowGo.GetComponent<RectTransform>();
-            arrowRect.anchorMin = arrowRect.anchorMax = new Vector2(0.5f, 0.5f);
-            arrowRect.sizeDelta = new Vector2(100f, 100f);
-            var arrowImage = arrowGo.AddComponent<Image>();
-            arrowImage.color = Color.white;
+            var strokeGo = new GameObject("Stroke", typeof(RectTransform));
+            strokeGo.transform.SetParent(telegraphGo.transform, false);
+            var strokeRect = strokeGo.GetComponent<RectTransform>();
+            strokeRect.anchorMin = Vector2.zero;
+            strokeRect.anchorMax = Vector2.one;
+            strokeRect.offsetMin = Vector2.zero;
+            strokeRect.offsetMax = Vector2.zero;
+            var strokeText = strokeGo.AddComponent<TextMeshProUGUI>();
+            strokeText.font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/UnityRonin/Fonts/YujiSyuku SDF.asset");
+            strokeText.fontSize = 110f;
+            strokeText.alignment = TextAlignmentOptions.Center;
+            strokeText.color = Color.white;
 
             telegraph = telegraphGo.AddComponent<DuelTelegraph>();
-            BindPrivate(telegraph, "_arrow", arrowRect);
-            BindPrivate(telegraph, "_arrowImage", arrowImage);
+            BindPrivate(telegraph, "_stroke", strokeRect);
+            BindPrivate(telegraph, "_strokeText", strokeText);
             telegraphGo.SetActive(false);
 
             return canvasGo;
@@ -248,7 +321,27 @@ namespace UnityRonin.Editor
             enemy.transform.position = position;
             enemy.GetComponent<Renderer>().sharedMaterial = MakeMatteMaterial(new Color(0.6f, 0.15f, 0.15f));
             enemy.AddComponent<EnemyEngageZone>();
+            enemy.AddComponent<EnemyCombatFeedback>();
             return enemy;
+        }
+
+        /// <summary>
+        /// A flat, transparent disc that tracks the player on the ground, sized to the engage-enter radius
+        /// so a player can see where the duel will actually trigger instead of relying on the invisible-
+        /// at-runtime <see cref="EnemyEngageZone"/> gizmo.
+        /// </summary>
+        private static GameObject BuildEngageRing()
+        {
+            var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "EngageRadiusRing";
+            Object.DestroyImmediate(ring.GetComponent<Collider>());
+            ring.transform.position = new Vector3(0f, 0.02f, 0f); // just above the ground, avoids z-fighting
+            ring.transform.localScale = new Vector3(1f, 0.01f, 1f); // diameter set at runtime from EnterRadius
+            var renderer = ring.GetComponent<Renderer>();
+            renderer.sharedMaterial = MakeTransparentMaterial(new Color(1f, 0.3f, 0.1f, 0.35f));
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return ring;
         }
 
         private static void BuildGameController(GameObject player, GameObject camera, VirtualJoystick joystick,
@@ -265,6 +358,12 @@ namespace UnityRonin.Editor
 
             var zones = new EnemyEngageZone[enemies.Length];
             for (int i = 0; i < enemies.Length; i++) zones[i] = enemies[i].GetComponent<EnemyEngageZone>();
+
+            var ring = BuildEngageRing();
+            var engageRingIndicator = ring.AddComponent<EngageRadiusIndicator>();
+            BindPrivate(engageRingIndicator, "_player", player.transform);
+            BindPrivate(engageRingIndicator, "_duelPresenter", presenter);
+            BindPrivate(engageRingIndicator, "_enemies", zones);
 
             BindPrivate(controller, "_locomotion", player.GetComponent<SamuraiLocomotion>());
             BindPrivate(controller, "_weapon", player.GetComponent<SamuraiWeapon>());
@@ -284,6 +383,16 @@ namespace UnityRonin.Editor
             BindPrivate(autopilot, "_locomotion", player.GetComponent<SamuraiLocomotion>());
             BindPrivate(autopilot, "_cameraYawSource", camera.transform);
             BindPrivate(autopilot, "_enemies", zones);
+
+            var demoModeGo = new GameObject("DemoMode");
+            var demoMode = demoModeGo.AddComponent<RoninDemoMode>();
+            BindPrivate(demoMode, "_joystick", joystick);
+            BindPrivate(demoMode, "_swipeReader", swipeReader);
+            BindPrivate(demoMode, "_duelPresenter", presenter);
+            BindPrivate(demoMode, "_player", player.transform);
+            BindPrivate(demoMode, "_locomotion", player.GetComponent<SamuraiLocomotion>());
+            BindPrivate(demoMode, "_cameraYawSource", camera.transform);
+            BindPrivate(demoMode, "_enemies", zones);
         }
 
         private static void BindPrivate(object target, string field, object value)

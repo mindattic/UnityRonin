@@ -10,10 +10,10 @@ namespace UnityRonin.Runtime.Camera
     public class SmartFollowCamera : MonoBehaviour
     {
         [SerializeField] private Transform _player;
-        [SerializeField] private Vector3 _exploreOffset = new Vector3(0f, 3.2f, -4.5f);
-        [SerializeField] private Vector3 _duelOffset = new Vector3(0f, 2.4f, -3.2f);
+        [SerializeField] private Vector3 _exploreOffset = new Vector3(0f, 2.3f, -3.1f);
+        [SerializeField] private Vector3 _duelOffset = new Vector3(0f, 1.8f, -2.3f);
         [SerializeField] private float _positionSmoothTime = 0.18f;
-        [SerializeField] private float _lookSmoothSpeed = 6f;
+        [SerializeField] private float _lookSmoothSpeed = 2.5f;
 
         private Transform _duelFocus;
         private Vector3 _velocity;

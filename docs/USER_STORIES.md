@@ -45,18 +45,38 @@ updated: 2026-10-11
 
 | ID | Story | Status | Evidence |
 | --- | --- | --- | --- |
-| US-020 | A drag is classified as Up/Down/Left/Right only once it clears a minimum distance | ✅ | `Classifies_the_dominant_axis_of_a_clear_swipe`, `A_drag_shorter_than_the_minimum_distance_is_not_a_swipe` |
-| US-021 | A diagonal drag resolves to whichever axis travelled further | ✅ | `A_diagonal_drag_resolves_to_whichever_axis_travelled_further` |
-| US-022 | Swiping the telegraphed direction against an enemy attack parries it: no damage | ✅ | `Swiping_the_telegraphed_direction_against_an_attack_parries` |
-| US-023 | Swiping the wrong direction, or not in time, against an attack hits the player | ✅ | `Swiping_the_wrong_direction_against_an_attack_hits_the_player`, `Not_responding_to_an_attack_in_time_also_hits_the_player` |
-| US-024 | Swiping the open direction against an enemy guard strikes it | ✅ | `Swiping_the_open_direction_against_a_guard_strikes_the_enemy` |
-| US-025 | Swiping the wrong direction, or not in time, against a guard just wastes the beat — no damage either way | ✅ | `Swiping_the_wrong_direction_against_a_guard_wastes_the_beat_with_no_damage`, `Not_responding_to_a_guard_wastes_the_beat_with_no_damage` |
+| US-020 | A drawn path is split into straight strokes at sharp corners only, each classified into one of five shapes | ✅ | `GestureClassifierTests`: `A_long_straight_horizontal_drag_classifies_as_horizontal`, `A_sharp_corner_splits_into_two_chained_strokes`, `A_gentle_curve_with_no_sharp_corner_stays_one_stroke` |
+| US-021 | A path that never clears the minimum stroke length is a Thrust (a tap), not an aborted swipe | ✅ | `A_pure_tap_with_no_movement_is_a_thrust`, `A_drag_shorter_than_the_minimum_distance_is_also_a_thrust_not_an_aborted_swipe` |
+| US-022 | Drawing the perpendicular shape against a cutting enemy attack parries it: no damage, and it opens a riposte | ✅ | `Perpendicular_stroke_against_a_cutting_attack_parries`, `Successful_parry_opens_a_riposte_window_instead_of_dealing_immediate_damage` |
+| US-023 | Drawing the wrong shape, or not in time, against an attack hits the player | ✅ | `Matching_stroke_against_a_cutting_attack_hits_the_player`, `Not_responding_to_an_attack_in_time_also_hits_the_player` |
+| US-023a | A thrust attack is parried only by a thrust in return — a cross-block has no purchase on a straight point | ✅ | `Matching_thrust_against_a_thrust_attack_parries`, `Thrusting_against_a_cutting_attack_does_not_parry_it`, `A_cross_block_does_not_stop_a_thrust_attack` |
+| US-024 | Matching the open shape against an enemy guard strikes it | ✅ | `Matching_the_open_shape_against_a_guard_strikes_the_enemy`, `Matching_a_thrust_guard_opening_strikes_the_enemy` |
+| US-025 | Drawing the wrong shape, or not in time, against a guard just wastes the beat — no damage either way | ✅ | `Wrong_shape_against_a_guard_wastes_the_beat_with_no_damage`, `Not_responding_to_a_guard_wastes_the_beat_with_no_damage` |
+| US-025a | Chaining strokes onto a successful guard strike lands a bonus hit each, as long as they keep alternating shape | ✅ | `Chained_strokes_alternating_shape_land_a_bonus_hit_each`, `Repeating_the_same_shape_breaks_the_combo_chain` |
 | US-026 | The duel ends the instant either combatant's health reaches zero | ✅ | `The_duel_ends_as_soon_as_either_side_reaches_zero_health` |
-| US-027 | The same seed replays the identical sequence of enemy beats | ✅ | `The_same_seed_replays_the_same_sequence_of_beats`, `Same_seed_replays_the_identical_sequence` (Rng) |
-| US-028 | The katana is sheathed while exploring and drawn the instant a duel starts | 🟡 | `DuelPresenter.Begin/End` calls `SamuraiWeapon.Draw/Sheathe` without error every autoplay duel; needs an owner playtest to confirm it looks right |
-| US-029 | The HUD shows a direction arrow colored by whether the enemy is attacking or guarding | 🟡 | `DuelTelegraph.Show/Hide` runs every autoplay beat without error; needs an owner playtest to confirm it reads clearly |
+| US-027 | The same seed replays the identical sequence of beats, including riposte exchanges | ✅ | `The_same_seed_replays_the_same_sequence_of_beats`, `Same_seed_replays_the_identical_sequence` (Rng) |
+| US-028 | The katana is sheathed while exploring and drawn the instant a duel starts, and swings through whatever gesture was just drawn | 🟡 | `DuelPresenter.Begin/End` calls `SamuraiWeapon.Draw/Sheathe`, and every gesture calls `SamuraiWeapon.Swing`, without error every autoplay duel; needs an owner playtest to confirm it looks right |
+| US-029 | The HUD shows the telegraphed technique as a real calligraphy-brush glyph, colored by attack vs. guard | 🟡 | `DuelTelegraph.Show/Hide` runs every autoplay beat without error; `-demo` screenshots confirm all five glyphs render correctly (see §Combo for the riposte prompt); needs an owner playtest to confirm it reads clearly |
 | US-030 | Winning a duel removes that enemy | ✅ | autoplay: both enemies inactive after their duels, in `Logs/autoplay.log` |
 | US-031 | Losing a duel knocks the Samurai back out of range instead of the duel immediately re-triggering | ✅ | autoplay: `RoninAutopilot` deliberately loses the first duel, then confirms the gate released and the enemy is still alive (`Logs/autoplay.log`: "confirmed a loss retreats the player") |
+
+## Combo (parry → riposte)
+
+A successful parry doesn't score damage on the spot — it earns a free, player-chosen attack
+(`DuelPhase.PlayerRiposte`), answered by the enemy retreating or countering with the same five
+techniques, mirrored. This is the duel's real combo system (see `docs/BIBLE.md` §2).
+
+| ID | Story | Status | Evidence |
+| --- | --- | --- | --- |
+| US-050 | A successful parry opens a riposte window instead of immediately dealing the next enemy beat | ✅ | `Successful_parry_opens_a_riposte_window_instead_of_dealing_immediate_damage` |
+| US-051 | Not drawing a riposte attack in time wastes the window — no damage either way | ✅ | `Riposte_timeout_wastes_the_window_with_no_damage` |
+| US-052 | The enemy may retreat from a riposte attack instead of risking a counter — no damage either way | ✅ | `Riposte_retreat_ends_the_window_safely` |
+| US-053 | If the enemy's counter doesn't validly answer the riposte attack, it lands — enemy takes damage | ✅ | `Riposte_lands_when_the_enemys_counter_fails` |
+| US-054 | If the enemy's counter does validly answer the riposte attack, the "flash slash" lands on the player instead | ✅ | `Riposte_countered_when_the_enemys_counter_matches` |
+| US-055 | A landed riposte reopens the window if the enemy survives, chaining into a real combo with no artificial depth cap | ✅ | `A_chained_combo_of_riposte_lands_can_defeat_the_enemy_without_returning_to_enemy_beat` |
+| US-056 | The riposte window visibly slows time and shows a neutral "your turn" cue, not a telegraphed technique | ✅ | `-demo` screenshots: the gold "刀" glyph appears after a real parry and persists ≈3× its nominal 0.6s window, confirming `Time.timeScale` slow-motion is genuinely active |
+| US-057 | The enemy hops back on a retreat and flashes on a successful counter — primitive-only feedback, no rig | 🟡 | `EnemyCombatFeedback.HopBack/FlashCounter` wired from `RoninGameController.OnBeatResolved`, runs without error every autoplay duel; needs an owner playtest to confirm it reads clearly |
+| US-058 | `-autoplay` proves the riposte wiring fires for real (prompt, slow-motion, timeout) without gambling the pass's deterministic win on the riposte's real risk | ✅ | `-autoplay` declines every riposte window (always a safe, scored timeout); two consecutive runs both exited 0 |
 
 ## Rendering
 

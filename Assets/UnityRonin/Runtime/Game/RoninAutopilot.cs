@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityRonin.Core.Combat;
 using UnityRonin.Runtime.Combat;
 using UnityRonin.Runtime.Input;
 using UnityRonin.Runtime.Player;
@@ -27,7 +25,6 @@ namespace UnityRonin.Runtime.Game
         [SerializeField] private Transform _cameraYawSource;
         [SerializeField] private EnemyEngageZone[] _enemies;
 
-        private const float DragRadiusPixels = 140f;
         private bool _failed;
 
         private void Start()
@@ -72,7 +69,8 @@ namespace UnityRonin.Runtime.Game
             yield return WaitForDuelToStart(enemy.name);
             if (_failed) yield break;
 
-            yield return FightDuel(enemy.name, alwaysLose: true);
+            yield return SelfPlayInput.FightDuel(_duelPresenter, _swipeReader, alwaysLose: true,
+                onRanTooLong: beats => Debug.LogWarning($"[UnityRonin] autoplay: duel against {enemy.name} ran {beats} beats without ending"));
             yield return null; // let OnDuelEnded's retreat apply before checking
 
             float distance = Vector3.Distance(_player.position, enemy.transform.position);
@@ -98,7 +96,8 @@ namespace UnityRonin.Runtime.Game
             yield return WaitForDuelToStart(enemy.name);
             if (_failed) yield break;
 
-            yield return FightDuel(enemy.name, alwaysLose: false);
+            yield return SelfPlayInput.FightDuel(_duelPresenter, _swipeReader, alwaysLose: false,
+                onRanTooLong: beats => Debug.LogWarning($"[UnityRonin] autoplay: duel against {enemy.name} ran {beats} beats without ending"));
 
             if (enemy.gameObject.activeInHierarchy)
             {
@@ -129,92 +128,9 @@ namespace UnityRonin.Runtime.Game
             Quit(1);
         }
 
-        private IEnumerator WalkToward(Transform target, float timeoutSeconds)
-        {
-            float elapsed = 0f;
-            float nextLog = 0f;
-            Vector2 origin = new Vector2(Screen.width * 0.5f, Screen.height * 0.25f);
-            var pointer = new PointerEventData(EventSystem.current) { pointerId = 0, position = origin };
-            _joystick.OnPointerDown(pointer);
-
-            while (elapsed < timeoutSeconds && !_duelPresenter.IsActive)
-            {
-                Vector3 toTarget = target.position - _player.position;
-                toTarget.y = 0f;
-
-                if (elapsed >= nextLog)
-                {
-                    Debug.Log($"[UnityRonin] autoplay walk t={elapsed:F1} playerPos={_player.position} dist={toTarget.magnitude:F2} stick={_joystick.Current.X:F2},{_joystick.Current.Y:F2} horiz={_locomotion.DebugLastHorizontal} vel={_locomotion.DebugControllerVelocity} grounded={_locomotion.DebugIsGrounded} lastDt={_locomotion.DebugLastDeltaTime:F4} frames={_locomotion.DebugFrameCount} collide={_locomotion.DebugLastCollisionFlags} fps={1f / Mathf.Max(Time.unscaledDeltaTime, 0.0001f):F0}");
-                    nextLog += 2f;
-                }
-
-                if (toTarget.sqrMagnitude > 0.01f)
-                {
-                    Vector3 worldDir = toTarget.normalized;
-                    float yaw = _cameraYawSource.eulerAngles.y * Mathf.Deg2Rad;
-                    // Inverse of CameraRelativeMotion.ToWorldDirection: rotate the desired world heading
-                    // back into stick space by the camera's yaw.
-                    float stickX = worldDir.x * Mathf.Cos(yaw) - worldDir.z * Mathf.Sin(yaw);
-                    float stickY = worldDir.x * Mathf.Sin(yaw) + worldDir.z * Mathf.Cos(yaw);
-                    pointer.position = origin + new Vector2(stickX, stickY) * DragRadiusPixels;
-                    _joystick.OnDrag(pointer);
-                }
-
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-
-            _joystick.OnPointerUp(pointer);
-        }
-
-        private IEnumerator FightDuel(string enemyName, bool alwaysLose)
-        {
-            int beats = 0;
-            while (_duelPresenter.IsActive && beats < 100)
-            {
-                var beat = _duelPresenter.PeekCurrentBeat;
-                yield return new WaitForSeconds(0.1f); // let the telegraph show before answering it
-                if (!_duelPresenter.IsActive) break;
-                if (beat.HasValue)
-                {
-                    var direction = alwaysLose ? Opposite(beat.Value.Direction) : beat.Value.Direction;
-                    yield return Swipe(direction);
-                }
-                beats++;
-                yield return null;
-            }
-
-            if (beats >= 100)
-                Debug.LogWarning($"[UnityRonin] autoplay: duel against {enemyName} ran {beats} beats without ending");
-        }
-
-        private static SwipeDirection Opposite(SwipeDirection direction) => direction switch
-        {
-            SwipeDirection.Up => SwipeDirection.Down,
-            SwipeDirection.Down => SwipeDirection.Up,
-            SwipeDirection.Left => SwipeDirection.Right,
-            SwipeDirection.Right => SwipeDirection.Left,
-            _ => SwipeDirection.Up
-        };
-
-        private IEnumerator Swipe(SwipeDirection direction)
-        {
-            Vector2 start = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
-            Vector2 delta = direction switch
-            {
-                SwipeDirection.Up => new Vector2(0f, 200f),
-                SwipeDirection.Down => new Vector2(0f, -200f),
-                SwipeDirection.Left => new Vector2(-200f, 0f),
-                SwipeDirection.Right => new Vector2(200f, 0f),
-                _ => Vector2.zero
-            };
-
-            var pointer = new PointerEventData(EventSystem.current) { pointerId = 1, position = start };
-            _swipeReader.OnPointerDown(pointer);
-            pointer.position = start + delta;
-            _swipeReader.OnPointerUp(pointer);
-            yield return null;
-        }
+        private IEnumerator WalkToward(Transform target, float timeoutSeconds) =>
+            SelfPlayInput.WalkToward(_joystick, _locomotion, _cameraYawSource, _player, target, _duelPresenter,
+                timeoutSeconds, logTag: "autoplay");
 
         private static void Quit(int code)
         {

@@ -28,6 +28,17 @@ Samurai and the duel through the real `VirtualJoystick`/`SwipeInputReader` point
 same ones a touchscreen calls), proving the explore → engage → duel → win/retreat loop fires correctly.
 This proves the code paths work; it cannot prove the gestures feel right — see below.
 
+## Demo Mode (watch it play itself)
+
+```powershell
+pwsh tools/demo.ps1
+```
+
+Builds a Windows player and launches it with `-autoplay`'s sibling flag, `-demo`: `RoninDemoMode` drives
+the Samurai through the same real pointer-handler methods as autoplay, but for watching or recording
+rather than verifying — it never quits, always plays to win, and once both enemies are defeated it
+reactivates them and loops forever. Close the window when you're done watching.
+
 ## Playtest on a phone
 
 Autoplay simulates pointer events; it is not a substitute for a human thumb. To actually feel the stick

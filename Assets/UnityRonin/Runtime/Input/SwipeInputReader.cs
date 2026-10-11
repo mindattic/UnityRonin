@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityRonin.Core.Combat;
@@ -5,28 +6,29 @@ using UnityRonin.Core.Combat;
 namespace UnityRonin.Runtime.Input
 {
     /// <summary>
-    /// Reads one finger drag anywhere on screen and classifies it as a cardinal swipe on release.
-    /// Active only while a duel wants swipes; the virtual joystick owns input the rest of the time.
+    /// Reads one continuous finger drag anywhere on screen and, on release, classifies the whole path into
+    /// <see cref="GestureStroke"/>s via <see cref="GestureClassifier"/> — a straight line is one stroke, a
+    /// zigzag is a chained combo. Active only while a duel wants gestures; the virtual joystick owns input
+    /// the rest of the time.
     /// </summary>
     public class SwipeInputReader : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
     {
-        [SerializeField] private float _minSwipeDistancePixels = 60f;
+        public System.Action<IReadOnlyList<GestureStroke>> GestureCompleted;
 
-        public System.Action<SwipeDirection> SwipeCompleted;
-
-        private Vector2 _start;
+        private readonly List<GesturePoint> _path = new List<GesturePoint>();
         private bool _tracking;
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            _start = eventData.position;
+            _path.Clear();
+            _path.Add(ToGesturePoint(eventData.position));
             _tracking = true;
         }
 
         public void OnDrag(PointerEventData eventData)
         {
-            // Intentionally no-op: classification happens once on release so a single clean swipe counts,
-            // not every intermediate frame of the drag.
+            if (!_tracking) return;
+            _path.Add(ToGesturePoint(eventData.position));
         }
 
         public void OnPointerUp(PointerEventData eventData)
@@ -34,10 +36,13 @@ namespace UnityRonin.Runtime.Input
             if (!_tracking) return;
             _tracking = false;
 
-            Vector2 delta = eventData.position - _start;
-            var direction = SwipeClassifier.Classify(delta.x, delta.y, _minSwipeDistancePixels);
-            if (direction != SwipeDirection.None)
-                SwipeCompleted?.Invoke(direction);
+            _path.Add(ToGesturePoint(eventData.position));
+            var strokes = GestureClassifier.Classify(_path);
+            if (strokes.Count > 0)
+                GestureCompleted?.Invoke(strokes);
         }
+
+        private static GesturePoint ToGesturePoint(Vector2 screenPosition) =>
+            new GesturePoint(screenPosition.x, screenPosition.y);
     }
 }

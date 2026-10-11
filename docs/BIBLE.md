@@ -11,9 +11,10 @@ updated: 2026-10-11
 
 ## 1. The one sentence {#UR-§1}
 Unity Ronin is a Unity 6 portrait mobile game where a Samurai is explored one-thumb, dragging a
-transparent analog stick that covers the bottom half of the screen, and fought one-thumb, cardinal
-swipes parrying or striking through a telegraphed katana duel the instant an enemy swordsman comes
-into range.
+transparent analog stick that covers the bottom half of the screen, and fought one-thumb, drawing
+calligraphy-stroke gestures — four cuts and a thrust, the same five techniques both sides use — to
+parry or strike through a telegraphed katana duel, where a successful parry opens a slowed-time
+riposte window to press the attack.
 
 ## 2. The product promise {#UR-§2}
 - **One hand, no buttons.** Every input is either a drag on the bottom-half stick or a swipe anywhere
@@ -25,12 +26,18 @@ into range.
   the feel (owner reference, 2026-10-11).
 - **Combat takes the thumb off the stick.** The instant the Samurai comes within range of an enemy
   swordsman, movement goes automatic (the game closes the distance and squares the two combatants up)
-  and the katana comes out. The same thumb that was dragging the stick now swipes: a direction
-  cardinal to the telegraph. If the enemy is attacking from a side, swiping that side parries it; if
-  the enemy is guarding and has left a side open, swiping that side strikes it. Guessing wrong, or not
-  swiping in time, costs a hit.
-- **The duel is a rhythm of beats**, not a combo string: telegraph, respond, resolve, repeat, until one
-  side's health runs out.
+  and the katana comes out. The same thumb that was dragging the stick now draws: a calligraphy stroke
+  shaped like the telegraphed technique. A cutting attack is stopped by the perpendicular cross-block;
+  a thrust only by another thrust; an open guard is struck by matching its shape. Guessing wrong, or
+  not drawing in time, costs a hit.
+- **A parry earns a riposte, not a point.** Countering a live attack doesn't score damage on the
+  spot — it opens a real, risk/reward combo: time slows, and the player draws a free attack of their
+  own choosing (no telegraph this time). The enemy retreats (safe) or counters with a technique of its
+  own, using the same cross-block/thrust/match rule mirrored. Land it and, if the enemy survives, the
+  window reopens for another; get countered and the "flash slash" costs a hit instead. This is the
+  duel's real combo system: chained exchanges, not a bonus tacked onto one swipe.
+- **The duel is a rhythm of beats**, not a fixed combo string: telegraph, respond, resolve, and — on a
+  parry — riposte, repeat, until one side's health runs out.
 - It is a touch-only mobile game, portrait orientation, locked (no landscape, no autorotate).
 
 ## 3. What it is NOT {#UR-§3}
@@ -50,12 +57,12 @@ into range.
  ┌─────────────────────────────────┐   ┌───────────────────────────────────────┐
  │ UnityRonin.Core (no UnityEngine) │◄──│ UnityRonin.Runtime (MonoBehaviours)    │
  │ VirtualStick  CameraRelativeMotion│   │ VirtualJoystick  SwipeInputReader      │
- │ EngageGate  SwipeClassifier       │   │ SamuraiLocomotion  SamuraiWeapon       │
- │ DuelDirector  DuelBeat/Outcome    │   │ SmartFollowCamera                      │
- │ Rng (seeded)                      │   │ EnemyEngageZone DuelTelegraph           │
- └────────────────▲──────────────────┘   │ DuelPresenter  RoninGameController     │
-                  │ dotnet test            └──────────────────▲───────────────────┘
-                  │ (Tests/Core.Tests)                         │
+ │ EngageGate  GestureClassifier     │   │ SamuraiLocomotion  SamuraiWeapon       │
+ │ DuelDirector  DuelPhase            │   │ SmartFollowCamera                      │
+ │ DuelBeat/Outcome  Rng (seeded)     │   │ EnemyEngageZone  EnemyCombatFeedback   │
+ └────────────────▲──────────────────┘   │ DuelTelegraph  DuelPresenter           │
+                  │ dotnet test            │ RoninGameController                   │
+                  │ (Tests/Core.Tests)      └──────────────────▲───────────────────┘
                   └─────────────────────────┌───────────────────┘
                                             │ UnityRonin.Editor   │
                                             │ DemoContentBuilder  │
@@ -63,13 +70,18 @@ into range.
                                             └─────────────────────┘
 ```
 
-- **Nouns:** `StickVector`, `DuelBeat`, `DuelOutcome`, `EngageState` (Core data/enums).
+- **Nouns:** `GestureSymbol` (the five techniques: Horizontal/Vertical/Rising/Falling/Thrust),
+  `GestureStroke`, `DuelBeat`, `DuelOutcome`, `DuelPhase` (`EnemyBeat` vs `PlayerRiposte`),
+  `EngageState` (Core data/enums).
 - **Verbs:**
   - `VirtualStick.Resolve/FromDrag` — dead zone, clamp, rescale.
   - `CameraRelativeMotion.ToWorldDirection` — stick → world heading by camera yaw.
   - `EngageGate.Update` — Explore ⇄ Engaged with hysteresis (enter radius < exit radius).
-  - `SwipeClassifier.Classify` — raw drag → cardinal `SwipeDirection`.
-  - `DuelDirector.Resolve` — scores one beat, mutates health, deals the next beat.
+  - `GestureClassifier.Classify` — a drawn path → one or more `GestureStroke`s, each a `GestureSymbol`.
+  - `DuelDirector.Resolve` — scores one enemy beat; a parry transitions `Phase` to `PlayerRiposte`
+    instead of dealing the next beat.
+  - `DuelDirector.ResolveRiposte` — scores the player's freely-chosen riposte attack; the enemy
+    retreats, counters (mirroring the same parry rule), or takes the hit and reopens the window.
   - `RoninGameController` — the only thing that decides whether the joystick zone or the swipe zone is
     live, and which enemy (if any) is currently being fought.
 - **Content:** `DemoContentBuilder` generates every GameObject, wiring, and the scene file,
@@ -94,18 +106,22 @@ so standing at the boundary never toggles stance on and off every frame. *(Test
 and reverses it the instant the duel ends. Neither `VirtualJoystick` nor `SwipeInputReader` decides
 this for itself. *(Source: `RoninGameController.StartDuel/OnDuelEnded`.)*
 
-### {#UR-LAW-4} A duel beat is won or lost by the swipe alone
-`DuelDirector.Resolve` takes only a `SwipeDirection` (or `None` on timeout) and returns a pure outcome;
-it never reads a transform, a collider, or wall-clock time itself. The presentation layer owns the
-clock. *(Tests in `DuelDirectorTests`.)*
+### {#UR-LAW-4} A duel beat is won or lost by the gesture alone
+`DuelDirector.Resolve`/`ResolveRiposte` take only the classified `GestureStroke`s (or an empty list on
+timeout) and return a pure outcome; neither reads a transform, a collider, or wall-clock time itself.
+The presentation layer owns the clock, including the riposte window's `Time.timeScale` slow-motion —
+Core only knows `Phase` and `RiposteWindowSeconds`, never how "slow" feels. *(Tests in
+`DuelDirectorTests`.)*
 
 ### {#UR-LAW-5} Generated content is regenerated, not hand-edited
 Edit `DemoContentBuilder`, then re-run `UnityRonin/Build Demo Scene`. A hand edit to `Demo.unity` is
 lost on the next build.
 
 ### {#UR-LAW-6} Free assets only
-Every third-party file is CC0 or OFL and listed in `CREDITS.md`. The current build has none — primitives
-only — on purpose, so the movement and duel feel are proven before any art is committed.
+Every third-party file is CC0 or OFL and listed in `CREDITS.md`. The one exception to primitives-only
+is the duel telegraph's font (Yuji Syuku, OFL — `CREDITS.md`), needed for the gesture glyphs to read
+as real calligraphy; everything else stays primitives on purpose, so the movement and duel feel are
+proven before any more art is committed.
 
 ### {#UR-LAW-7} Verification means an actual device, not just batch mode
 `-nographics` never renders a single pixel and runs uncapped (observed ~10,000 FPS with nothing to draw)
@@ -116,8 +132,19 @@ compile and a headless autoplay pass as necessary, not sufficient: install the r
 material, and a frame-rate-dependent movement stall — none visible to `-nographics`.)*
 
 ## 6. Verified state {#UR-§6}
-- `dotnet test Tests/Core.Tests`: 30 passing — stick dead zone/clamp, camera-relative heading, engage
-  hysteresis, swipe classification, seeded RNG, full duel scoring matrix and seed replay.
+- `dotnet test Tests/Core.Tests`: 45 passing — stick dead zone/clamp, camera-relative heading, engage
+  hysteresis, gesture classification (including the Thrust tap), seeded RNG, the full duel scoring
+  matrix (cut cross-blocks, thrust-vs-thrust, guard matches), every riposte branch (landed, countered,
+  retreated, timed out, a chained combo defeating an enemy without leaving `PlayerRiposte`), and seed
+  replay through a riposte exchange.
+- Both runs of `-autoplay` on a Windows player with the riposte system built: exit 0. Autoplay
+  deliberately declines every riposte window it's offered (an empty gesture, which always times out
+  safely) rather than attempting a bonus attack — it only needs to prove the slow-time wiring fires
+  for real through actual pointer-handler calls, not gamble this pass's deterministic win on the
+  riposte's genuine risk; the Core tests already cover every branch of that risk directly. `-demo`
+  confirmed visually: the gold "刀" riposte prompt appears after a real parry and persists well past
+  its nominal 0.6s window (≈3× longer across screenshots 300ms apart), confirming the slow-motion is
+  actually in effect, not just a longer timer.
 - `tools/test.ps1 -Compile`: Unity 6000.4.3f1 batch-mode compile of `UnityRonin.Core/Runtime/Editor`
   is clean (the only errors in the log are inside Unity's own bundled `com.unity.shadergraph` package,
   unrelated to this project).
@@ -179,12 +206,18 @@ material, and a frame-rate-dependent movement stall — none visible to `-nograp
 ## 7. Active frontier {#UR-§7}
 - An owner playtest for feel on a touch device — automated testing (autoplay, on-device ADB injection)
   only proves the wiring works, never the feel. This is a hard limit: it genuinely requires a human.
+  The riposte combo especially needs a real thumb's judgment: is the slow-motion window long enough,
+  does `retreatChance` (0.3) feel fair, is drawing a second gesture mid-combo actually comfortable.
 - Real free-asset Samurai and enemy models/animations (CC0, credited in `CREDITS.md`) replacing the
-  capsule/cube primitives.
-- Sound: a footstep, the blade draw, a clash, a hit, a kill — none exist yet.
+  capsule/cube primitives — this also covers `EnemyCombatFeedback`'s hop/flash, which stands in for a
+  real retreat/counter animation.
+- Sound: a footstep, the blade draw, a clash, a hit, a kill, and a distinct cue for the riposte window
+  opening — none exist yet.
 - A true game-over/retry screen after a loss, beyond the current knockback-and-retreat.
-- Difficulty scaling across repeated duels (telegraph speed, response window) as the player progresses.
-- Portrait UI polish: a health readout for both combatants during a duel.
+- Difficulty/balance scaling: `retreatChance`, `riposteWindowSeconds`, and `riposteTimeScale` are fixed
+  constants right now, not tuned or scaled across repeated duels as the player progresses.
+- Portrait UI polish: a health readout for both combatants during a duel, and some sense of combo
+  count/length during a riposte chain.
 
 ## 8. Quality bar {#UR-§8}
 A change is done when all of these hold:
@@ -197,11 +230,19 @@ A change is done when all of these hold:
 ## 9. Glossary {#UR-§9}
 - **Stick zone:** the invisible RectTransform covering the bottom half of the screen that owns the
   transparent analog stick while exploring.
-- **Swipe zone:** the full-screen RectTransform that reads one drag-and-release as a cardinal swipe
-  while a duel is active.
+- **Swipe zone:** the full-screen RectTransform that reads one drawn gesture (a drag-and-release,
+  possibly several strokes chained in one continuous motion) while a duel is active.
 - **Engage / Explore:** the two states of `EngageGate` — free movement vs. a live duel.
-- **Beat:** one telegraph → response → resolution cycle of a duel.
-- **Telegraph:** the HUD arrow showing the enemy's next direction and whether it is an attack (parry)
-  or a guard opening (strike).
-- **Parry / Strike / Hit / Whiff:** the four live `DuelOutcome` results of a beat (see `DuelOutcome.cs`
-  for the two timeout variants as well).
+- **Beat:** one telegraph → response → resolution cycle of an enemy-initiated exchange
+  (`DuelPhase.EnemyBeat`).
+- **Riposte:** the free, player-initiated exchange a successful parry earns (`DuelPhase.PlayerRiposte`):
+  no telegraph — the player draws whichever of the five techniques they choose — answered by the
+  enemy's own retreat-or-counter reaction. Chains as long as the player keeps landing it.
+- **Technique / gesture symbol:** one of the five drawable shapes both sides attack and defend with —
+  Horizontal (横斬り yoko-giri), Vertical (斬り下ろし kiri-oroshi), Rising (斬り上げ kiriage), Falling
+  (袈裟斬り kesa-giri), Thrust (突き tsuki, drawn as a tap).
+- **Telegraph:** the HUD glyph (a real brush-calligraphy character, see `CREDITS.md`) showing the
+  enemy's next technique and whether it is an attack (parry) or a guard opening (strike); a riposte
+  window shows a neutral "刀" cue instead, since the player picks freely.
+- **Parry / Strike / Hit / Whiff:** the four live enemy-beat `DuelOutcome` results (see `DuelOutcome.cs`
+  for the two timeout variants and the four `PlayerRiposte*` riposte results as well).
