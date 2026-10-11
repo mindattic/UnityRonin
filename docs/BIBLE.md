@@ -108,11 +108,17 @@ Every third-party file is CC0 or OFL and listed in `CREDITS.md`. The current bui
 only — on purpose, so the movement and duel feel are proven before any art is committed.
 
 ## 6. Verified state {#UR-§6}
-- `dotnet test Tests/Core.Tests`: all Core rules (stick dead zone/clamp, camera-relative heading,
-  engage hysteresis, swipe classification, seeded RNG, full duel scoring matrix and seed replay) pass.
-- Unity 6000.4.3f1 batch-mode compile: pending first run of `tools/test.ps1 -Compile` (Unity is
-  installed locally at `6000.4.3f1`; run it after the Editor is closed on this project).
-- No autoplay/self-play pass yet — see Active frontier.
+- `dotnet test Tests/Core.Tests`: 30 passing — stick dead zone/clamp, camera-relative heading, engage
+  hysteresis, swipe classification, seeded RNG, full duel scoring matrix and seed replay.
+- `tools/test.ps1 -Compile`: Unity 6000.4.3f1 batch-mode compile of `UnityRonin.Core/Runtime/Editor`
+  is clean (the only errors in the log are inside Unity's own bundled `com.unity.shadergraph` package,
+  unrelated to this project).
+- `UnityRonin/Build Demo Scene` (`DemoContentBuilder.BuildAll`) runs batch-mode end to end and writes
+  `Assets/UnityRonin/Scenes/Demo.unity` with no errors: ground, Samurai (capsule + CharacterController +
+  `SamuraiLocomotion`/`SamuraiWeapon`), camera, HUD canvas (joystick zone, swipe zone, duel telegraph),
+  `GameController`, `DuelPresenter`, and two enemy swordsmen, all wired by `SerializedObject`.
+- No autoplay/self-play pass yet (nothing presses the stick or swipes for itself) — see Active frontier.
+- No owner playtest on a touch device yet.
 
 ## 7. Active frontier {#UR-§7}
 - An `Autopilot`-style self-play verification (`-batchmode -autoplay`), on UnityEve's pattern, so the
