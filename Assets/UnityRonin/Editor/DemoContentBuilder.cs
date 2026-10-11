@@ -66,11 +66,14 @@ namespace UnityRonin.Editor
             controller.height = 2f;
             controller.center = new Vector3(0f, 1f, 0f);
 
+            // Cosmetic props only: a BoxCollider parented inside the player's own CharacterController
+            // radius self-collides with it and can jam movement entirely, so both colliders are removed.
             var sheathed = GameObject.CreatePrimitive(PrimitiveType.Cube);
             sheathed.name = "KatanaSheathed";
             sheathed.transform.SetParent(player.transform);
             sheathed.transform.localPosition = new Vector3(0.4f, 0.2f, -0.2f);
             sheathed.transform.localScale = new Vector3(0.1f, 0.6f, 0.1f);
+            Object.DestroyImmediate(sheathed.GetComponent<BoxCollider>());
 
             var drawn = GameObject.CreatePrimitive(PrimitiveType.Cube);
             drawn.name = "KatanaDrawn";
@@ -78,6 +81,7 @@ namespace UnityRonin.Editor
             drawn.transform.localPosition = new Vector3(0.5f, 0.6f, 0.5f);
             drawn.transform.localRotation = Quaternion.Euler(45f, 0f, 0f);
             drawn.transform.localScale = new Vector3(0.08f, 1f, 0.08f);
+            Object.DestroyImmediate(drawn.GetComponent<BoxCollider>());
             drawn.SetActive(false);
 
             player.AddComponent<SamuraiLocomotion>();
@@ -239,6 +243,7 @@ namespace UnityRonin.Editor
             BindPrivate(autopilot, "_swipeReader", swipeReader);
             BindPrivate(autopilot, "_duelPresenter", presenter);
             BindPrivate(autopilot, "_player", player.transform);
+            BindPrivate(autopilot, "_locomotion", player.GetComponent<SamuraiLocomotion>());
             BindPrivate(autopilot, "_cameraYawSource", camera.transform);
             BindPrivate(autopilot, "_enemies", zones);
         }

@@ -120,27 +120,38 @@ only — on purpose, so the movement and duel feel are proven before any art is 
 - `tools/autoplay.ps1`: builds a Windows player of Demo.unity and runs it `-batchmode -nographics
   -autoplay`. `RoninAutopilot` calls `VirtualJoystick`'s and `SwipeInputReader`'s real
   `IPointerDownHandler`/`IDragHandler`/`IPointerUpHandler` methods — the same ones a touchscreen would
-  invoke — to walk the Samurai to each enemy and answer every duel beat correctly. **PASS**: both
-  enemies engaged and defeated, exit 0 (`Logs/autoplay.log`). This is the loop end to end: stick input
-  → camera-relative movement → engage-radius trigger → katana draw → duel beats → swipe scoring → enemy
-  defeated, with no human and no touch hardware.
-  - This pass caught three real bugs before any human touched a device: a `CanvasGroup` on the
-    joystick's own raycast-receiving object (`blocksRaycasts=false` disables raycasting for its whole
-    subtree, including itself, which would have silently swallowed every touch), `RoninGameController`
-    measuring engage distance from its own logic-only GameObject instead of the Samurai's transform, and
-    `SamuraiLocomotion`'s camera-yaw reference never being wired up in the content builder. All three are
-    fixed in the current build.
+  invoke — to (1) deliberately lose one duel and confirm the loss knocks the Samurai back out of the
+  engage radius rather than the duel re-triggering instantly, then (2) walk to and defeat both enemies
+  for real. **PASS, run twice in a row**: exit 0 both times (`Logs/autoplay.log`). This is the loop end
+  to end: stick input → camera-relative movement → engage-radius trigger → katana draw → duel beats →
+  swipe scoring → win (enemy removed) or loss (Samurai knocked back), with no human and no touch
+  hardware.
+  - This pass caught five real bugs before any human touched a device:
+    1. A `CanvasGroup` with `blocksRaycasts=false` sat on the joystick's own raycast-receiving
+       GameObject — a `CanvasGroup` disables raycasting for its whole subtree, including itself, so
+       the stick could never have received a touch.
+    2. `RoninGameController` measured engage distance from its own logic-only GameObject instead of
+       the Samurai's transform — the duel could never have triggered regardless of where the player
+       walked.
+    3. `SamuraiLocomotion`'s camera-yaw reference was never actually bound by the content builder.
+    4. The content builder passed the HUD canvas itself, not the joystick zone, as the GameObject
+       `RoninGameController` toggles off when a duel starts (a `.transform.parent` mistake).
+    5. The katana prop cubes (cosmetic only) each got a default `BoxCollider` from
+       `CreatePrimitive`, parented inside the Samurai's own `CharacterController` radius — a classic
+       Unity self-collision gotcha that nearly froze all movement.
+  - All five are fixed in the current build.
 - Still outstanding: an owner playtest on an actual touch device. Autoplay proves the code paths fire
-  correctly; it does not prove the stick/swipe gestures feel right under a real thumb.
+  correctly under simulated pointer events; it cannot prove the stick/swipe gestures feel right under a
+  real thumb, nor can an agent fabricate that evidence — it requires a person holding a phone. See
+  README "Playtest on a phone" for how to get a build onto one.
 
 ## 7. Active frontier {#UR-§7}
-- An owner playtest on a touch device — autoplay only proves the wiring, not the feel.
+- An owner playtest on a touch device — autoplay only proves the wiring, not the feel. This is a hard
+  limit: it genuinely requires a human, Claude Code cannot do it.
 - Real free-asset Samurai and enemy models/animations (CC0, credited in `CREDITS.md`) replacing the
   capsule/cube primitives.
 - Sound: a footstep, the blade draw, a clash, a hit, a kill — none exist yet.
-- A player-defeat flow: losing a duel currently just restarts it at full health immediately (the
-  enemy is still in engage range), so there is no retreat, no game over, and no way to walk away from
-  a lost fight yet.
+- A true game-over/retry screen after a loss, beyond the current knockback-and-retreat.
 - Difficulty scaling across repeated duels (telegraph speed, response window) as the player progresses.
 - Portrait UI polish: a health readout for both combatants during a duel.
 

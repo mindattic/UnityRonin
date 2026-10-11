@@ -8,6 +8,7 @@ namespace UnityRonin.Editor
     public static class RoninBuild
     {
         private const string PlayerPath = "Build/Windows/UnityRonin.exe";
+        private const string AndroidPath = "Build/Android/UnityRonin.apk";
 
         [MenuItem("UnityRonin/Compile Check")]
         public static void CompileCheck()
@@ -37,6 +38,29 @@ namespace UnityRonin.Editor
                 throw new Exception($"[UnityRonin] player build failed: {report.summary.result}, {report.summary.totalErrors} error(s)");
 
             Debug.Log($"[UnityRonin] Windows player built: {PlayerPath}");
+        }
+
+        /// <summary>
+        /// Builds a real, installable Android APK of Demo.unity with real touch input (no "-autoplay"
+        /// shortcut) — this is for an owner to sideload onto their own phone, since no autoplay run can
+        /// substitute for a human thumb's judgment of whether the gestures feel right.
+        /// </summary>
+        [MenuItem("UnityRonin/Build Android APK")]
+        public static void BuildAndroid()
+        {
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { "Assets/UnityRonin/Scenes/Demo.unity" },
+                locationPathName = AndroidPath,
+                target = BuildTarget.Android,
+                options = BuildOptions.None
+            };
+
+            var report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
+                throw new Exception($"[UnityRonin] Android build failed: {report.summary.result}, {report.summary.totalErrors} error(s)");
+
+            Debug.Log($"[UnityRonin] Android APK built: {AndroidPath}");
         }
     }
 }

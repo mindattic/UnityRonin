@@ -11,6 +11,7 @@ namespace UnityRonin.Runtime.Combat
 
         private EngageGate _gate;
         public EngageState State => _gate.State;
+        public float ExitRadius => _exitRadius;
 
         private void Awake()
         {

@@ -26,6 +26,9 @@ namespace UnityRonin.Runtime.Player
         private float _verticalVelocity;
 
         public bool IsMoving { get; private set; }
+        public Vector3 DebugLastHorizontal { get; private set; }
+        public Vector3 DebugControllerVelocity => _controller.velocity;
+        public bool DebugIsGrounded => _controller.isGrounded;
 
         private void Awake()
         {
@@ -35,6 +38,7 @@ namespace UnityRonin.Runtime.Player
         private void Update()
         {
             Vector3 horizontal = AcceptsStickInput ? ComputeStickMotion() : ComputeAutoMotion();
+            DebugLastHorizontal = horizontal;
 
             if (horizontal.sqrMagnitude > 0.0001f)
             {
@@ -59,6 +63,14 @@ namespace UnityRonin.Runtime.Player
             float yaw = _cameraYawSource != null ? _cameraYawSource.eulerAngles.y : transform.eulerAngles.y;
             var (x, z) = CameraRelativeMotion.ToWorldDirection(StickInput, yaw);
             return new Vector3(x, 0f, z);
+        }
+
+        /// <summary>Repositions the Samurai outright (e.g. a defeat knockback), bypassing normal movement.</summary>
+        public void Teleport(Vector3 worldPosition)
+        {
+            _controller.enabled = false;
+            transform.position = worldPosition;
+            _controller.enabled = true;
         }
 
         private Vector3 ComputeAutoMotion()

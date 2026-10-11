@@ -85,8 +85,27 @@ namespace UnityRonin.Runtime.Game
             _camera.SetDuelFocus(null);
             _swipeZone.SetActive(false);
             _joystickZone.SetActive(true);
-            if (_activeEnemy != null && playerWon) _activeEnemy.gameObject.SetActive(false);
+
+            if (_activeEnemy != null)
+            {
+                if (playerWon) _activeEnemy.gameObject.SetActive(false);
+                else Retreat(_activeEnemy);
+            }
             _activeEnemy = null;
+        }
+
+        /// <summary>
+        /// Losing knocks the Samurai back out of the enemy's exit radius, so the engage gate actually
+        /// releases to Exploring instead of re-triggering the same duel the very next frame.
+        /// </summary>
+        private void Retreat(EnemyEngageZone enemy)
+        {
+            Vector3 away = _locomotion.transform.position - enemy.transform.position;
+            away.y = 0f;
+            if (away.sqrMagnitude < 0.01f) away = -enemy.transform.forward;
+
+            Vector3 destination = enemy.transform.position + away.normalized * (enemy.ExitRadius + 1f);
+            _locomotion.Teleport(destination);
         }
     }
 }

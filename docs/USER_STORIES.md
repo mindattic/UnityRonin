@@ -56,4 +56,4 @@ updated: 2026-10-11
 | US-028 | The katana is sheathed while exploring and drawn the instant a duel starts | 🟡 | `DuelPresenter.Begin/End` calls `SamuraiWeapon.Draw/Sheathe` without error every autoplay duel; needs an owner playtest to confirm it looks right |
 | US-029 | The HUD shows a direction arrow colored by whether the enemy is attacking or guarding | 🟡 | `DuelTelegraph.Show/Hide` runs every autoplay beat without error; needs an owner playtest to confirm it reads clearly |
 | US-030 | Winning a duel removes that enemy | ✅ | autoplay: both enemies inactive after their duels, in `Logs/autoplay.log` |
-| US-031 | Losing a duel has a retreat/game-over flow instead of an immediate full-health restart | ⬜ | See BIBLE §7 — not built; current behavior just restarts the duel while still in range |
+| US-031 | Losing a duel knocks the Samurai back out of range instead of the duel immediately re-triggering | ✅ | autoplay: `RoninAutopilot` deliberately loses the first duel, then confirms the gate released and the enemy is still alive (`Logs/autoplay.log`: "confirmed a loss retreats the player") |
