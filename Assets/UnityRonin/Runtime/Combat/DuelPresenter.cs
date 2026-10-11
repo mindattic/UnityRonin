@@ -28,6 +28,9 @@ namespace UnityRonin.Runtime.Combat
 
         public bool IsActive { get; private set; }
 
+        /// <summary>The beat currently being telegraphed, for autoplay/verification; null when inactive.</summary>
+        public DuelBeat? PeekCurrentBeat => IsActive ? _director.CurrentBeat : (DuelBeat?)null;
+
         public void Begin(uint seed, int playerHealth = 3, int enemyHealth = 3)
         {
             _director = new DuelDirector(new Rng(seed), playerHealth, enemyHealth);

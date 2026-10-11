@@ -117,12 +117,24 @@ only — on purpose, so the movement and duel feel are proven before any art is 
   `Assets/UnityRonin/Scenes/Demo.unity` with no errors: ground, Samurai (capsule + CharacterController +
   `SamuraiLocomotion`/`SamuraiWeapon`), camera, HUD canvas (joystick zone, swipe zone, duel telegraph),
   `GameController`, `DuelPresenter`, and two enemy swordsmen, all wired by `SerializedObject`.
-- No autoplay/self-play pass yet (nothing presses the stick or swipes for itself) — see Active frontier.
-- No owner playtest on a touch device yet.
+- `tools/autoplay.ps1`: builds a Windows player of Demo.unity and runs it `-batchmode -nographics
+  -autoplay`. `RoninAutopilot` calls `VirtualJoystick`'s and `SwipeInputReader`'s real
+  `IPointerDownHandler`/`IDragHandler`/`IPointerUpHandler` methods — the same ones a touchscreen would
+  invoke — to walk the Samurai to each enemy and answer every duel beat correctly. **PASS**: both
+  enemies engaged and defeated, exit 0 (`Logs/autoplay.log`). This is the loop end to end: stick input
+  → camera-relative movement → engage-radius trigger → katana draw → duel beats → swipe scoring → enemy
+  defeated, with no human and no touch hardware.
+  - This pass caught three real bugs before any human touched a device: a `CanvasGroup` on the
+    joystick's own raycast-receiving object (`blocksRaycasts=false` disables raycasting for its whole
+    subtree, including itself, which would have silently swallowed every touch), `RoninGameController`
+    measuring engage distance from its own logic-only GameObject instead of the Samurai's transform, and
+    `SamuraiLocomotion`'s camera-yaw reference never being wired up in the content builder. All three are
+    fixed in the current build.
+- Still outstanding: an owner playtest on an actual touch device. Autoplay proves the code paths fire
+  correctly; it does not prove the stick/swipe gestures feel right under a real thumb.
 
 ## 7. Active frontier {#UR-§7}
-- An `Autopilot`-style self-play verification (`-batchmode -autoplay`), on UnityEve's pattern, so the
-  explore→engage→duel→resolve loop can be proven without a human holding a phone.
+- An owner playtest on a touch device — autoplay only proves the wiring, not the feel.
 - Real free-asset Samurai and enemy models/animations (CC0, credited in `CREDITS.md`) replacing the
   capsule/cube primitives.
 - Sound: a footstep, the blade draw, a clash, a hit, a kill — none exist yet.

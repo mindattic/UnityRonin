@@ -45,13 +45,17 @@ namespace UnityRonin.Runtime.Game
 
         private EnemyEngageZone FindNearestEngaged()
         {
+            // This controller lives on its own logic-only GameObject, not on the player, so distance
+            // must be measured from the Samurai's transform, never this component's own transform.
+            Vector3 playerPosition = _locomotion.transform.position;
+
             EnemyEngageZone best = null;
             float bestDistance = float.MaxValue;
             foreach (var enemy in _enemies)
             {
                 if (enemy == null || !enemy.gameObject.activeInHierarchy) continue;
-                var state = enemy.UpdateDistance(transform.position);
-                float distance = Vector3.Distance(transform.position, enemy.transform.position);
+                var state = enemy.UpdateDistance(playerPosition);
+                float distance = Vector3.Distance(playerPosition, enemy.transform.position);
                 if (state == EngageState.Engaged && distance < bestDistance)
                 {
                     best = enemy;

@@ -28,10 +28,11 @@ namespace UnityRonin.Editor
             BuildLight();
             var player = BuildPlayer();
             var camera = BuildCamera(player.transform);
+            BindPrivate(player.GetComponent<SamuraiLocomotion>(), "_cameraYawSource", camera.transform);
             var canvas = BuildCanvas(out var joystick, out var swipeZone, out var swipeReader, out var telegraph);
             var enemies = new[] { BuildEnemy("Enemy Swordsman 1", new Vector3(6f, 0.9f, 4f)), BuildEnemy("Enemy Swordsman 2", new Vector3(-7f, 0.9f, 9f)) };
 
-            BuildGameController(player, camera, joystick, swipeReader, telegraph, joystick.transform.parent.gameObject, swipeZone, enemies);
+            BuildGameController(player, camera, joystick, swipeReader, telegraph, joystick.gameObject, swipeZone, enemies);
 
             System.IO.Directory.CreateDirectory("Assets/UnityRonin/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -127,12 +128,23 @@ namespace UnityRonin.Editor
             var zoneImage = joystickZone.AddComponent<Image>();
             zoneImage.color = new Color(0f, 0f, 0f, 0.01f); // effectively invisible but still raycastable
 
-            var visualGroup = joystickZone.AddComponent<CanvasGroup>();
+            // The fade group lives on a separate cosmetic child, never on JoystickZone itself: a
+            // CanvasGroup with blocksRaycasts=false disables raycasting for its WHOLE subtree, including
+            // the object it sits on, which would have silently swallowed every touch on the zone's own
+            // Image and defeated the stick entirely.
+            var visualGo = new GameObject("Visual", typeof(RectTransform));
+            visualGo.transform.SetParent(joystickZone.transform, false);
+            var visualRect = visualGo.GetComponent<RectTransform>();
+            visualRect.anchorMin = Vector2.zero;
+            visualRect.anchorMax = Vector2.one;
+            visualRect.offsetMin = Vector2.zero;
+            visualRect.offsetMax = Vector2.zero;
+            var visualGroup = visualGo.AddComponent<CanvasGroup>();
             visualGroup.alpha = 0f;
             visualGroup.interactable = false;
             visualGroup.blocksRaycasts = false;
 
-            var background = CreateCircle("StickBackground", joystickZone.transform, 220f, new Color(1f, 1f, 1f, 0.25f));
+            var background = CreateCircle("StickBackground", visualGo.transform, 220f, new Color(1f, 1f, 1f, 0.25f));
             var knob = CreateCircle("StickKnob", background.transform, 90f, new Color(1f, 1f, 1f, 0.55f));
 
             joystick = joystickZone.AddComponent<VirtualJoystick>();
@@ -220,6 +232,15 @@ namespace UnityRonin.Editor
             BindPrivate(controller, "_joystickZone", joystickZone);
             BindPrivate(controller, "_swipeZone", swipeZone);
             BindPrivate(controller, "_enemies", zones);
+
+            var autopilotGo = new GameObject("Autopilot");
+            var autopilot = autopilotGo.AddComponent<RoninAutopilot>();
+            BindPrivate(autopilot, "_joystick", joystick);
+            BindPrivate(autopilot, "_swipeReader", swipeReader);
+            BindPrivate(autopilot, "_duelPresenter", presenter);
+            BindPrivate(autopilot, "_player", player.transform);
+            BindPrivate(autopilot, "_cameraYawSource", camera.transform);
+            BindPrivate(autopilot, "_enemies", zones);
         }
 
         private static void BindPrivate(object target, string field, object value)
