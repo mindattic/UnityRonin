@@ -107,6 +107,14 @@ lost on the next build.
 Every third-party file is CC0 or OFL and listed in `CREDITS.md`. The current build has none — primitives
 only — on purpose, so the movement and duel feel are proven before any art is committed.
 
+### {#UR-LAW-7} Verification means an actual device, not just batch mode
+`-nographics` never renders a single pixel and runs uncapped (observed ~10,000 FPS with nothing to draw)
+— it cannot catch a rendering bug or a physics bug that only appears at a real frame rate. Treat a batch
+compile and a headless autoplay pass as necessary, not sufficient: install the real build
+(`UnityRonin/Build Android APK`) on an actual device or emulator before calling anything visual done.
+*(This is how §6's bugs 6–8 were found — a dangling render pipeline reference, a blown-out ground
+material, and a frame-rate-dependent movement stall — none visible to `-nographics`.)*
+
 ## 6. Verified state {#UR-§6}
 - `dotnet test Tests/Core.Tests`: 30 passing — stick dead zone/clamp, camera-relative heading, engage
   hysteresis, swipe classification, seeded RNG, full duel scoring matrix and seed replay.
@@ -140,14 +148,37 @@ only — on purpose, so the movement and duel feel are proven before any art is 
        `CreatePrimitive`, parented inside the Samurai's own `CharacterController` radius — a classic
        Unity self-collision gotcha that nearly froze all movement.
   - All five are fixed in the current build.
-- Still outstanding: an owner playtest on an actual touch device. Autoplay proves the code paths fire
-  correctly under simulated pointer events; it cannot prove the stick/swipe gestures feel right under a
-  real thumb, nor can an agent fabricate that evidence — it requires a person holding a phone. See
-  README "Playtest on a phone" for how to get a build onto one.
+- **An actual Android install, not just a build.** `UnityRonin/Build Android APK` was installed on a
+  real booted emulator (Pixel 7, API 36) via `adb install` and driven with genuine `adb shell input`
+  touch injection against the real Android touch stack — categorically more real than calling a C#
+  pointer-handler method. Screenshots in `artifacts/android-playtest/` confirm it boots, renders, and
+  responds on device. This on-device test caught three more real bugs no batch-mode run ever could,
+  because `-nographics` never renders a single pixel:
+  6. **ProjectSettings/GraphicsSettings.asset and QualitySettings.asset still pointed at UnityEve's own
+     URP pipeline asset GUID** (copied wholesale at scaffold time; that asset doesn't exist in this
+     project). With no render pipeline actually resolvable, URP's shader stripper kept ~1.7M
+     "ForwardLit" variants instead of the handful this scene uses — a ~36 GB, 15+ minute player build
+     that also pressured system memory badly enough that the harness killed a background shell twice.
+     Fixed by `RoninBuild.EnsureRenderPipeline`, which creates and assigns a real, minimal URP asset;
+     variant counts dropped to 1–2 per pass and player builds now take under a minute.
+  7. **The ground rendered as a blown-out white specular highlight** on real GPU hardware — invisible
+     to `-nographics`, which never renders a pixel. `Default-Material`'s smoothness produces a huge
+     specular highlight across a plane this large under a directional light. Fixed with explicit matte
+     (near-zero smoothness, non-metallic), saved-as-asset materials for ground/Samurai/enemies.
+  8. **Movement crawled to a near-standstill** when the headless Windows autoplay build ran completely
+     uncapped (~10,000 FPS with nothing to render): each frame's displacement became so small that
+     `CharacterController.Move` couldn't reliably apply it while touching the ground. A real phone never
+     runs anywhere near that fast, so this specific failure mode could never happen on-device — but
+     capping `Application.targetFrameRate = 60` in `RoninGameController.Awake` is correct regardless,
+     for battery and thermal reasons, and it also made the Windows autoplay harness itself reliable.
+- Still outstanding: an owner playtest for *feel*. Autoplay and the on-device install both prove the
+  code paths fire correctly; neither can judge whether the stick drag and the swipe timing feel right
+  under a real thumb — that is not something any amount of automated testing or agent work can
+  substitute for. See README "Playtest on a phone" for how to get the build onto one.
 
 ## 7. Active frontier {#UR-§7}
-- An owner playtest on a touch device — autoplay only proves the wiring, not the feel. This is a hard
-  limit: it genuinely requires a human, Claude Code cannot do it.
+- An owner playtest for feel on a touch device — automated testing (autoplay, on-device ADB injection)
+  only proves the wiring works, never the feel. This is a hard limit: it genuinely requires a human.
 - Real free-asset Samurai and enemy models/animations (CC0, credited in `CREDITS.md`) replacing the
   capsule/cube primitives.
 - Sound: a footstep, the blade draw, a clash, a hit, a kill — none exist yet.

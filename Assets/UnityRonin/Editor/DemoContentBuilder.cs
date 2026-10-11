@@ -22,6 +22,8 @@ namespace UnityRonin.Editor
         [MenuItem("UnityRonin/Build Demo Scene")]
         public static void BuildAll()
         {
+            RoninBuild.EnsureRenderPipeline();
+
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             BuildGround();
@@ -34,6 +36,9 @@ namespace UnityRonin.Editor
 
             BuildGameController(player, camera, joystick, swipeReader, telegraph, joystick.gameObject, swipeZone, enemies);
 
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
             System.IO.Directory.CreateDirectory("Assets/UnityRonin/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
             Debug.Log($"[UnityRonin] Demo scene rebuilt at {ScenePath}");
@@ -44,6 +49,38 @@ namespace UnityRonin.Editor
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.localScale = new Vector3(5f, 1f, 5f);
+            ground.GetComponent<Renderer>().sharedMaterial = MakeMatteMaterial(new Color(0.33f, 0.38f, 0.3f));
+        }
+
+        /// <summary>
+        /// Default-Material's smoothness produces a huge specular highlight across a flat plane this size
+        /// under a directional light — on a real device this blows the ground out to solid white (found by
+        /// an actual on-device screenshot; -nographics batch mode never renders a pixel, so it never
+        /// caught this). A near-zero-smoothness, non-metallic material avoids it regardless of exposure.
+        ///
+        /// Saved as a real .mat asset, not a bare `new Material(...)`: an in-memory-only material built at
+        /// build time left the URP shader stripper unable to tell which keyword variants were actually
+        /// live, and it kept ~1.7M "ForwardLit" variants (a ~36 GB, 15+ minute player build) rather than
+        /// the handful this scene actually uses.
+        /// </summary>
+        private static Material MakeMatteMaterial(Color color)
+        {
+            const string dir = "Assets/UnityRonin/Generated/Materials";
+            System.IO.Directory.CreateDirectory(dir);
+            string path = $"{dir}/Matte_{ColorUtility.ToHtmlStringRGB(color)}.mat";
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+
+            material.color = color;
+            material.SetFloat("_Smoothness", 0.05f);
+            material.SetFloat("_Metallic", 0f);
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         private static void BuildLight()
@@ -60,6 +97,7 @@ namespace UnityRonin.Editor
             var player = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             player.name = "Samurai";
             player.transform.position = new Vector3(0f, 1f, 0f);
+            player.GetComponent<Renderer>().sharedMaterial = MakeMatteMaterial(new Color(0.75f, 0.73f, 0.68f));
             Object.DestroyImmediate(player.GetComponent<CapsuleCollider>());
 
             var controller = player.AddComponent<CharacterController>();
@@ -208,7 +246,7 @@ namespace UnityRonin.Editor
             var enemy = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             enemy.name = name;
             enemy.transform.position = position;
-            enemy.GetComponent<Renderer>().sharedMaterial.color = new Color(0.6f, 0.15f, 0.15f);
+            enemy.GetComponent<Renderer>().sharedMaterial = MakeMatteMaterial(new Color(0.6f, 0.15f, 0.15f));
             enemy.AddComponent<EnemyEngageZone>();
             return enemy;
         }

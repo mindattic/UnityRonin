@@ -27,6 +27,17 @@ namespace UnityRonin.Runtime.Game
 
         private EnemyEngageZone _activeEnemy;
 
+        private void Awake()
+        {
+            // Mobile battery/thermal hygiene, and it matters functionally too: left uncapped (as happens
+            // in a -nographics batch run with nothing to render), the frame rate goes high enough that
+            // CharacterController.Move's per-frame displacement drops below its own collision-resolution
+            // precision while touching the ground, and horizontal movement effectively stops. A real phone
+            // never runs anywhere near this fast, so this only ever bit the headless autoplay harness —
+            // but capping it is correct regardless of that.
+            Application.targetFrameRate = 60;
+        }
+
         private void Update()
         {
             if (_duelPresenter.IsActive)

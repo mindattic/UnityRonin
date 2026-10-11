@@ -29,8 +29,8 @@ updated: 2026-10-11
 | US-002 | Dragging past the stick's travel radius clamps to full deflection, never overshoots | ✅ | `Input_beyond_full_deflection_clamps_to_unit_magnitude` |
 | US-003 | The stick's output rescales continuously from the dead-zone edge to full deflection | ✅ | `Rescaling_is_continuous_from_the_dead_zone_edge_to_full_deflection` |
 | US-004 | Stick input is interpreted relative to the camera's facing, not world axes | ✅ | `Pushing_up_with_zero_yaw_moves_along_world_forward`, `Pushing_up_with_camera_yawed_90_degrees_moves_along_world_right` |
-| US-005 | The stick covers the bottom half of the screen and appears wherever the thumb lands | 🟡 | autoplay drives real `OnPointerDown`/`OnDrag` and the Samurai moves correctly; needs an owner playtest for how it feels under a real thumb |
-| US-006 | The camera sits slightly above and behind and smart-follows without a second-finger drag | 🟡 | `SmartFollowCamera` runs every frame of the autoplay pass with no errors; needs an owner playtest |
+| US-005 | The stick covers the bottom half of the screen and appears wherever the thumb lands | 🟡 | autoplay drives real `OnPointerDown`/`OnDrag` and the Samurai moves correctly; confirmed rendering on a real Android device (`artifacts/android-playtest/`); needs an owner playtest for how it feels under a real thumb |
+| US-006 | The camera sits slightly above and behind and smart-follows without a second-finger drag | 🟡 | `SmartFollowCamera` runs every frame of the autoplay pass with no errors; confirmed rendering on a real Android device; needs an owner playtest |
 
 ## Engagement
 
@@ -57,3 +57,11 @@ updated: 2026-10-11
 | US-029 | The HUD shows a direction arrow colored by whether the enemy is attacking or guarding | 🟡 | `DuelTelegraph.Show/Hide` runs every autoplay beat without error; needs an owner playtest to confirm it reads clearly |
 | US-030 | Winning a duel removes that enemy | ✅ | autoplay: both enemies inactive after their duels, in `Logs/autoplay.log` |
 | US-031 | Losing a duel knocks the Samurai back out of range instead of the duel immediately re-triggering | ✅ | autoplay: `RoninAutopilot` deliberately loses the first duel, then confirms the gate released and the enemy is still alive (`Logs/autoplay.log`: "confirmed a loss retreats the player") |
+
+## Rendering
+
+| ID | Story | Status | Evidence |
+| --- | --- | --- | --- |
+| US-040 | The project has its own real URP pipeline asset, not a dangling reference to another project's | ✅ | `RoninBuild.EnsureRenderPipeline`; confirmed by shader variant counts dropping from ~1.7M to 1–2 per pass in `Logs/build-player.log` |
+| US-041 | The ground renders as matte terrain, not a blown-out white specular highlight | ✅ | On-device screenshot `artifacts/android-playtest/03-fixed-ground.png` on a real Pixel 7 emulator, Android 16 |
+| US-042 | The game boots and renders correctly on real Android hardware (not just Unity's -nographics batch mode) | ✅ | Installed via `adb install` and launched via `adb shell monkey` on a booted Pixel 7 (API 36) AVD; screenshots in `artifacts/android-playtest/` |

@@ -144,7 +144,7 @@ namespace UnityRonin.Runtime.Game
 
                 if (elapsed >= nextLog)
                 {
-                    Debug.Log($"[UnityRonin] autoplay walk t={elapsed:F1} playerPos={_player.position} dist={toTarget.magnitude:F2} stick={_joystick.Current.X:F2},{_joystick.Current.Y:F2} horiz={_locomotion.DebugLastHorizontal} vel={_locomotion.DebugControllerVelocity} grounded={_locomotion.DebugIsGrounded} dt={Time.deltaTime:F4}");
+                    Debug.Log($"[UnityRonin] autoplay walk t={elapsed:F1} playerPos={_player.position} dist={toTarget.magnitude:F2} stick={_joystick.Current.X:F2},{_joystick.Current.Y:F2} horiz={_locomotion.DebugLastHorizontal} vel={_locomotion.DebugControllerVelocity} grounded={_locomotion.DebugIsGrounded} lastDt={_locomotion.DebugLastDeltaTime:F4} frames={_locomotion.DebugFrameCount} collide={_locomotion.DebugLastCollisionFlags} fps={1f / Mathf.Max(Time.unscaledDeltaTime, 0.0001f):F0}");
                     nextLog += 2f;
                 }
 

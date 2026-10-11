@@ -29,6 +29,9 @@ namespace UnityRonin.Runtime.Player
         public Vector3 DebugLastHorizontal { get; private set; }
         public Vector3 DebugControllerVelocity => _controller.velocity;
         public bool DebugIsGrounded => _controller.isGrounded;
+        public CollisionFlags DebugLastCollisionFlags { get; private set; }
+        public float DebugLastDeltaTime { get; private set; }
+        public int DebugFrameCount { get; private set; }
 
         private void Awake()
         {
@@ -55,7 +58,9 @@ namespace UnityRonin.Runtime.Player
             _verticalVelocity = _controller.isGrounded ? -0.5f : _verticalVelocity + _gravity * Time.deltaTime;
 
             Vector3 motion = horizontal * _moveSpeed + Vector3.up * _verticalVelocity;
-            _controller.Move(motion * Time.deltaTime);
+            DebugLastDeltaTime = Time.deltaTime;
+            DebugFrameCount++;
+            DebugLastCollisionFlags = _controller.Move(motion * Time.deltaTime);
         }
 
         private Vector3 ComputeStickMotion()
