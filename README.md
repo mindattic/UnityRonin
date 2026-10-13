@@ -55,3 +55,10 @@ and the swipes:
 There is no iOS build yet (it needs a provisioning profile/signing you'd supply; the Unity iOS player
 module is installed locally but Xcode + an Apple developer account are not something this repo can
 provide).
+
+## Capture
+
+[MindAttic.Capture](../MindAttic.Capture) auto-starts in Editor Play sessions and development
+builds (not gated by `-capture`); `Assets/StreamingAssets/capture.json` is set to film the whole
+session (`"video": true`). Currently disabled project-wide: `"enabled": false` in that same file.
+Flip it to `true` (or remove the key) to re-enable.
