@@ -2522,7 +2522,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2022733378}
-  - component: {fileID: 2022733377}
   m_Layer: 0
   m_Name: DemoMode
   m_TagString: Untagged
@@ -2530,27 +2529,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2022733377
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2022733376}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d6777a951587cf4fb644e764c85b946, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityRonin.Runtime::UnityRonin.Runtime.Game.RoninDemoMode
-  _joystick: {fileID: 448428463}
-  _swipeReader: {fileID: 70623044}
-  _duelPresenter: {fileID: 1134892169}
-  _player: {fileID: 1594972796}
-  _locomotion: {fileID: 1594972795}
-  _cameraYawSource: {fileID: 1388272754}
-  _enemies:
-  - {fileID: 1217967988}
-  - {fileID: 415887089}
 --- !u!4 &2022733378
 Transform:
   m_ObjectHideFlags: 0

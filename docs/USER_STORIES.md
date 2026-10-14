@@ -85,3 +85,12 @@ techniques, mirrored. This is the duel's real combo system (see `docs/BIBLE.md` 
 | US-040 | The project has its own real URP pipeline asset, not a dangling reference to another project's | ✅ | `RoninBuild.EnsureRenderPipeline`; confirmed by shader variant counts dropping from ~1.7M to 1–2 per pass in `Logs/build-player.log` |
 | US-041 | The ground renders as matte terrain, not a blown-out white specular highlight | ✅ | On-device screenshot `artifacts/android-playtest/03-fixed-ground.png` on a real Pixel 7 emulator, Android 16 |
 | US-042 | The game boots and renders correctly on real Android hardware (not just Unity's -nographics batch mode) | ✅ | Installed via `adb install` and launched via `adb shell monkey` on a booted Pixel 7 (API 36) AVD; screenshots in `artifacts/android-playtest/` |
+
+## Tickets
+> Permanent log of every change and fix — this repo's ticket system. Rows are append-only: never
+> delete or reword one; only move its Status (open → closed / wont-do) and fill in Ref. Status is
+> a word, not a glyph, so tickets don't count toward the story index. Keep this section last.
+
+| ID | Date | Type | Status | Summary | Ref |
+|---|---|---|---|---|---|
+| UR-T1 | 2026-10-12 | docs | closed | Start the permanent ticket log in USER_STORIES.md | — |

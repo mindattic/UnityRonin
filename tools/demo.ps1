@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-  Builds the Windows player and launches it with -demo: RoninDemoMode self-plays the demo scene on loop,
-  via the real VirtualJoystick/SwipeInputReader pointer-handler methods, for watching or recording. Unlike
-  tools/autoplay.ps1 this never exits and never loses on purpose — close the window when done watching.
+  Builds the Windows player and launches it with -demo (windowed, not headless): RoninAutopilot self-plays
+  the demo scene via the real VirtualJoystick/SwipeInputReader pointer-handler methods, then quits with
+  PASS/FAIL. Same tour as tools/autoplay.ps1, just watchable instead of headless.
 .EXAMPLE
   pwsh tools/demo.ps1
   pwsh tools/demo.ps1 -SkipBuild   # reuse the last built player

@@ -65,11 +65,11 @@ namespace UnityRonin.Editor
         }
 
         /// <summary>
-        /// Builds a Windows standalone player of Demo.unity so tools/autoplay.ps1 can run it with
-        /// "-batchmode -nographics -autoplay", or tools/demo.ps1 can run it with "-demo" to watch it
-        /// self-play on loop: a desktop build is enough, since RoninAutopilot and RoninDemoMode both drive
-        /// the game through the same pointer-handler methods a touchscreen would call, never real hardware
-        /// input, so the lack of a touchscreen on this build target doesn't matter.
+        /// Builds a Windows standalone player of Demo.unity so tools/autoplay.ps1 can run it headless with
+        /// "-batchmode -nographics -demo", or tools/demo.ps1 can run it windowed with "-demo" to watch it:
+        /// a desktop build is enough, since RoninAutopilot drives the game through the same pointer-handler
+        /// methods a touchscreen would call, never real hardware input, so the lack of a touchscreen on
+        /// this build target doesn't matter.
         /// </summary>
         [MenuItem("UnityRonin/Build Windows Player")]
         public static void BuildWindows()
@@ -80,8 +80,8 @@ namespace UnityRonin.Editor
                 locationPathName = PlayerPath,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None,
-                // This is the playtest/demo player, never a public release build, so every run (manual play,
-                // -autoplay, -demo) gets MindAttic.Capture: see Assets/StreamingAssets/capture.json.
+                // This is the playtest/demo player, never a public release build, so every run (manual play
+                // or -demo) gets MindAttic.Capture.
                 extraScriptingDefines = new[] { "MINDATTIC_CAPTURE" }
             };
 
@@ -93,8 +93,8 @@ namespace UnityRonin.Editor
         }
 
         /// <summary>
-        /// Builds a real, installable Android APK of Demo.unity with real touch input (no "-autoplay"
-        /// shortcut) — this is for an owner to sideload onto their own phone, since no autoplay run can
+        /// Builds a real, installable Android APK of Demo.unity with real touch input (no "-demo"
+        /// shortcut) — this is for an owner to sideload onto their own phone, since no scripted run can
         /// substitute for a human thumb's judgment of whether the gestures feel right.
         /// </summary>
         [MenuItem("UnityRonin/Build Android APK")]

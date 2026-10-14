@@ -11,9 +11,8 @@ namespace UnityRonin.Runtime.Game
 {
     /// <summary>
     /// Drives the Samurai through <see cref="VirtualJoystick"/>'s and <see cref="SwipeInputReader"/>'s
-    /// real IPointerDownHandler/IDragHandler methods (the same ones a touchscreen calls), shared by
-    /// <see cref="RoninAutopilot"/> (the "-autoplay" verification run) and <see cref="RoninDemoMode"/>
-    /// (the "-demo" showcase loop) so the one simulated-input technique lives in one place.
+    /// real IPointerDownHandler/IDragHandler methods (the same ones a touchscreen calls), used by
+    /// <see cref="RoninAutopilot"/> (the "-demo" tour: verified self-play, PASS/FAIL, quits).
     /// </summary>
     internal static class SelfPlayInput
     {

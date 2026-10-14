@@ -383,16 +383,6 @@ namespace UnityRonin.Editor
             BindPrivate(autopilot, "_locomotion", player.GetComponent<SamuraiLocomotion>());
             BindPrivate(autopilot, "_cameraYawSource", camera.transform);
             BindPrivate(autopilot, "_enemies", zones);
-
-            var demoModeGo = new GameObject("DemoMode");
-            var demoMode = demoModeGo.AddComponent<RoninDemoMode>();
-            BindPrivate(demoMode, "_joystick", joystick);
-            BindPrivate(demoMode, "_swipeReader", swipeReader);
-            BindPrivate(demoMode, "_duelPresenter", presenter);
-            BindPrivate(demoMode, "_player", player.transform);
-            BindPrivate(demoMode, "_locomotion", player.GetComponent<SamuraiLocomotion>());
-            BindPrivate(demoMode, "_cameraYawSource", camera.transform);
-            BindPrivate(demoMode, "_enemies", zones);
         }
 
         private static void BindPrivate(object target, string field, object value)

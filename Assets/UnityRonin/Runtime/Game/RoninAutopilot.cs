@@ -8,12 +8,13 @@ using UnityRonin.Runtime.Player;
 namespace UnityRonin.Runtime.Game
 {
     /// <summary>
-    /// Self-play verification for the command-line flag "-autoplay": drives the Samurai toward each
-    /// enemy by calling <see cref="VirtualJoystick"/>'s real IPointerDownHandler/IDragHandler methods
-    /// (the same ones a touchscreen would call), then answers every duel beat by calling
-    /// <see cref="SwipeInputReader"/>'s real pointer handlers with the correct drag. This exercises the
-    /// actual compiled Update/coroutine/physics loop end to end, not just a compile check, so it can run
-    /// with no touch hardware and no human. Exits 0 only if every enemy is defeated.
+    /// Self-play verification for the command-line flag "-demo" — the same flag name used for the tour
+    /// in every MindAttic Unity project: drives the Samurai toward each enemy by calling
+    /// <see cref="VirtualJoystick"/>'s real IPointerDownHandler/IDragHandler methods (the same ones a
+    /// touchscreen would call), then answers every duel beat by calling <see cref="SwipeInputReader"/>'s
+    /// real pointer handlers with the correct drag. This exercises the actual compiled
+    /// Update/coroutine/physics loop end to end, not just a compile check, so it can run with no touch
+    /// hardware and no human. Exits 0 only if every enemy is defeated.
     /// </summary>
     public class RoninAutopilot : MonoBehaviour
     {
@@ -29,7 +30,7 @@ namespace UnityRonin.Runtime.Game
 
         private void Start()
         {
-            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-autoplay") < 0)
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-demo") < 0)
             {
                 enabled = false;
                 return;
@@ -39,7 +40,7 @@ namespace UnityRonin.Runtime.Game
 
         private IEnumerator Run()
         {
-            Debug.Log("[UnityRonin] autoplay start");
+            Debug.Log("[UnityRonin] demo start");
 
             if (_enemies.Length > 0 && _enemies[0] != null)
             {
@@ -54,10 +55,10 @@ namespace UnityRonin.Runtime.Game
                 yield return EngageAndWin(enemy);
                 if (_failed) yield break;
 
-                Debug.Log($"[UnityRonin] autoplay: defeated {enemy.name}");
+                Debug.Log($"[UnityRonin] demo: defeated {enemy.name}");
             }
 
-            Debug.Log("[UnityRonin] autoplay PASS: all enemies defeated");
+            Debug.Log("[UnityRonin] demo PASS: all enemies defeated");
             Quit(0);
         }
 
@@ -70,24 +71,24 @@ namespace UnityRonin.Runtime.Game
             if (_failed) yield break;
 
             yield return SelfPlayInput.FightDuel(_duelPresenter, _swipeReader, alwaysLose: true,
-                onRanTooLong: beats => Debug.LogWarning($"[UnityRonin] autoplay: duel against {enemy.name} ran {beats} beats without ending"));
+                onRanTooLong: beats => Debug.LogWarning($"[UnityRonin] demo: duel against {enemy.name} ran {beats} beats without ending"));
             yield return null; // let OnDuelEnded's retreat apply before checking
 
             float distance = Vector3.Distance(_player.position, enemy.transform.position);
             if (_duelPresenter.IsActive || distance < enemy.ExitRadius)
             {
-                Debug.LogError($"[UnityRonin] autoplay FAIL: losing did not retreat the player out of range (distance={distance}, exitRadius={enemy.ExitRadius})");
+                Debug.LogError($"[UnityRonin] demo FAIL: losing did not retreat the player out of range (distance={distance}, exitRadius={enemy.ExitRadius})");
                 Fail();
                 yield break;
             }
             if (!enemy.gameObject.activeInHierarchy)
             {
-                Debug.LogError("[UnityRonin] autoplay FAIL: the enemy was defeated despite the player losing");
+                Debug.LogError("[UnityRonin] demo FAIL: the enemy was defeated despite the player losing");
                 Fail();
                 yield break;
             }
 
-            Debug.Log($"[UnityRonin] autoplay: confirmed a loss retreats the player (distance={distance})");
+            Debug.Log($"[UnityRonin] demo: confirmed a loss retreats the player (distance={distance})");
         }
 
         private IEnumerator EngageAndWin(EnemyEngageZone enemy)
@@ -97,11 +98,11 @@ namespace UnityRonin.Runtime.Game
             if (_failed) yield break;
 
             yield return SelfPlayInput.FightDuel(_duelPresenter, _swipeReader, alwaysLose: false,
-                onRanTooLong: beats => Debug.LogWarning($"[UnityRonin] autoplay: duel against {enemy.name} ran {beats} beats without ending"));
+                onRanTooLong: beats => Debug.LogWarning($"[UnityRonin] demo: duel against {enemy.name} ran {beats} beats without ending"));
 
             if (enemy.gameObject.activeInHierarchy)
             {
-                Debug.LogError($"[UnityRonin] autoplay FAIL: {enemy.name} still standing after its duel");
+                Debug.LogError($"[UnityRonin] demo FAIL: {enemy.name} still standing after its duel");
                 Fail();
             }
         }
@@ -117,7 +118,7 @@ namespace UnityRonin.Runtime.Game
 
             if (!_duelPresenter.IsActive)
             {
-                Debug.LogError($"[UnityRonin] autoplay FAIL: duel never started against {enemyName}");
+                Debug.LogError($"[UnityRonin] demo FAIL: duel never started against {enemyName}");
                 Fail();
             }
         }
@@ -130,7 +131,7 @@ namespace UnityRonin.Runtime.Game
 
         private IEnumerator WalkToward(Transform target, float timeoutSeconds) =>
             SelfPlayInput.WalkToward(_joystick, _locomotion, _cameraYawSource, _player, target, _duelPresenter,
-                timeoutSeconds, logTag: "autoplay");
+                timeoutSeconds, logTag: "demo");
 
         private static void Quit(int code)
         {
