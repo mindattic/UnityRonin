@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityRonin.Core.Combat;
 using UnityRonin.Core.Util;
-using Xunit;
+using NUnit.Framework;
 
 namespace UnityRonin.Core.Tests
 {
@@ -65,164 +65,164 @@ namespace UnityRonin.Core.Tests
             return strokes;
         }
 
-        [Fact]
+        [Test]
         public void Perpendicular_stroke_against_a_cutting_attack_parries()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Vertical));
-            Assert.Equal(DuelOutcome.PlayerParried, outcome);
-            Assert.Equal(3, duel.PlayerHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerParried));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(3));
         }
 
-        [Fact]
+        [Test]
         public void Matching_stroke_against_a_cutting_attack_hits_the_player()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Horizontal));
-            Assert.Equal(DuelOutcome.PlayerHit, outcome);
-            Assert.Equal(2, duel.PlayerHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerHit));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(2));
         }
 
-        [Fact]
+        [Test]
         public void Thrusting_against_a_cutting_attack_does_not_parry_it()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Thrust));
-            Assert.Equal(DuelOutcome.PlayerHit, outcome);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerHit));
         }
 
-        [Fact]
+        [Test]
         public void Matching_thrust_against_a_thrust_attack_parries()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Thrust, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Thrust));
-            Assert.Equal(DuelOutcome.PlayerParried, outcome);
-            Assert.Equal(3, duel.PlayerHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerParried));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(3));
         }
 
-        [Fact]
+        [Test]
         public void A_cross_block_does_not_stop_a_thrust_attack()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Thrust, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Vertical));
-            Assert.Equal(DuelOutcome.PlayerHit, outcome);
-            Assert.Equal(2, duel.PlayerHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerHit));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(2));
         }
 
-        [Fact]
+        [Test]
         public void Not_responding_to_an_attack_in_time_also_hits_the_player()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel);
             var outcome = duel.Resolve(Strokes());
-            Assert.Equal(DuelOutcome.PlayerTimedOutUndefended, outcome);
-            Assert.Equal(2, duel.PlayerHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerTimedOutUndefended));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(2));
         }
 
-        [Fact]
+        [Test]
         public void Matching_the_open_shape_against_a_guard_strikes_the_enemy()
         {
             FindBeat(DuelAction.Guard, GestureSymbol.Vertical, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Vertical));
-            Assert.Equal(DuelOutcome.PlayerStruck, outcome);
-            Assert.Equal(2, duel.EnemyHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerStruck));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(2));
         }
 
-        [Fact]
+        [Test]
         public void Matching_a_thrust_guard_opening_strikes_the_enemy()
         {
             FindBeat(DuelAction.Guard, GestureSymbol.Thrust, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Thrust));
-            Assert.Equal(DuelOutcome.PlayerStruck, outcome);
-            Assert.Equal(2, duel.EnemyHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerStruck));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(2));
         }
 
-        [Fact]
+        [Test]
         public void Wrong_shape_against_a_guard_wastes_the_beat_with_no_damage()
         {
             FindBeat(DuelAction.Guard, GestureSymbol.Vertical, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Horizontal));
-            Assert.Equal(DuelOutcome.PlayerWhiffed, outcome);
-            Assert.Equal(3, duel.PlayerHealth);
-            Assert.Equal(3, duel.EnemyHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerWhiffed));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(3));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(3));
         }
 
-        [Fact]
+        [Test]
         public void Not_responding_to_a_guard_wastes_the_beat_with_no_damage()
         {
             FindBeat(DuelAction.Guard, GestureSymbol.Vertical, out var duel);
             var outcome = duel.Resolve(Strokes());
-            Assert.Equal(DuelOutcome.PlayerTimedOutWasted, outcome);
-            Assert.Equal(3, duel.PlayerHealth);
-            Assert.Equal(3, duel.EnemyHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerTimedOutWasted));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(3));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(3));
         }
 
-        [Fact]
+        [Test]
         public void Chained_strokes_alternating_shape_land_a_bonus_hit_each()
         {
             FindBeat(DuelAction.Guard, GestureSymbol.Horizontal, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Horizontal, GestureSymbol.Vertical, GestureSymbol.Horizontal));
-            Assert.Equal(DuelOutcome.PlayerStruck, outcome);
-            Assert.Equal(0, duel.EnemyHealth); // base hit + 2 bonus combo hits, from a starting 3
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerStruck));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(0)); // base hit + 2 bonus combo hits, from a starting 3
         }
 
-        [Fact]
+        [Test]
         public void Repeating_the_same_shape_breaks_the_combo_chain()
         {
             FindBeat(DuelAction.Guard, GestureSymbol.Horizontal, out var duel);
             var outcome = duel.Resolve(Strokes(GestureSymbol.Horizontal, GestureSymbol.Horizontal, GestureSymbol.Vertical));
-            Assert.Equal(DuelOutcome.PlayerStruck, outcome);
-            Assert.Equal(2, duel.EnemyHealth); // base hit only; the chain breaks at the repeat
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerStruck));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(2)); // base hit only; the chain breaks at the repeat
         }
 
-        [Fact]
+        [Test]
         public void Successful_parry_opens_a_riposte_window_instead_of_dealing_immediate_damage()
         {
             var duel = ReachRiposte();
-            Assert.Equal(DuelPhase.PlayerRiposte, duel.Phase);
-            Assert.Equal(3, duel.EnemyHealth);
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.PlayerRiposte));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(3));
         }
 
-        [Fact]
+        [Test]
         public void Riposte_timeout_wastes_the_window_with_no_damage()
         {
             var duel = ReachRiposte();
             var outcome = duel.ResolveRiposte(Strokes());
-            Assert.Equal(DuelOutcome.PlayerRiposteTimedOut, outcome);
-            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
-            Assert.Equal(3, duel.PlayerHealth);
-            Assert.Equal(3, duel.EnemyHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerRiposteTimedOut));
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.EnemyBeat));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(3));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(3));
         }
 
-        [Fact]
+        [Test]
         public void Riposte_retreat_ends_the_window_safely()
         {
             var duel = ReachRiposte(retreatChance: 1f);
             var outcome = duel.ResolveRiposte(Strokes(GestureSymbol.Horizontal));
-            Assert.Equal(DuelOutcome.PlayerRiposteRetreated, outcome);
-            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
-            Assert.Equal(3, duel.PlayerHealth);
-            Assert.Equal(3, duel.EnemyHealth);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerRiposteRetreated));
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.EnemyBeat));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(3));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(3));
         }
 
-        [Fact]
+        [Test]
         public void Riposte_lands_when_the_enemys_counter_fails()
         {
             var duel = ReachRiposteOutcome(DuelOutcome.PlayerRiposteLanded, out var outcome);
-            Assert.Equal(DuelOutcome.PlayerRiposteLanded, outcome);
-            Assert.Equal(2, duel.EnemyHealth);
-            Assert.Equal(DuelPhase.PlayerRiposte, duel.Phase); // enemy survived; the chain continues
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerRiposteLanded));
+            Assert.That(duel.EnemyHealth, Is.EqualTo(2));
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.PlayerRiposte)); // enemy survived; the chain continues
         }
 
-        [Fact]
+        [Test]
         public void Riposte_countered_when_the_enemys_counter_matches()
         {
             var duel = ReachRiposteOutcome(DuelOutcome.PlayerRiposteCountered, out var outcome);
-            Assert.Equal(DuelOutcome.PlayerRiposteCountered, outcome);
-            Assert.Equal(2, duel.PlayerHealth);
-            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerRiposteCountered));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(2));
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.EnemyBeat));
         }
 
-        [Fact]
+        [Test]
         public void A_chained_combo_of_riposte_lands_can_defeat_the_enemy_without_returning_to_enemy_beat()
         {
             for (uint seed = 1; seed < 10000; seed++)
@@ -233,20 +233,20 @@ namespace UnityRonin.Core.Tests
 
                 var first = duel.ResolveRiposte(Strokes(GestureSymbol.Horizontal));
                 if (first != DuelOutcome.PlayerRiposteLanded) continue;
-                Assert.Equal(DuelPhase.PlayerRiposte, duel.Phase); // one health left; the chain stays open
+                Assert.That(duel.Phase, Is.EqualTo(DuelPhase.PlayerRiposte)); // one health left; the chain stays open
 
                 var second = duel.ResolveRiposte(Strokes(GestureSymbol.Horizontal));
                 if (second != DuelOutcome.PlayerRiposteLanded) continue;
 
-                Assert.True(duel.IsOver);
-                Assert.True(duel.PlayerWon);
-                Assert.Equal(0, duel.EnemyHealth);
+                Assert.That(duel.IsOver, Is.True);
+                Assert.That(duel.PlayerWon, Is.True);
+                Assert.That(duel.EnemyHealth, Is.EqualTo(0));
                 return;
             }
             Assert.Fail("No seed under 10000 produced two consecutive riposte lands.");
         }
 
-        [Fact]
+        [Test]
         public void The_duel_ends_as_soon_as_either_side_reaches_zero_health()
         {
             // Always answering correctly (perpendicular to a cut, matching a thrust, matching a guard) parries
@@ -270,27 +270,27 @@ namespace UnityRonin.Core.Tests
                 duel.Resolve(Strokes(response));
             }
 
-            Assert.True(duel.IsOver);
-            Assert.True(duel.PlayerWon);
+            Assert.That(duel.IsOver, Is.True);
+            Assert.That(duel.PlayerWon, Is.True);
         }
 
-        [Fact]
+        [Test]
         public void The_same_seed_replays_the_same_sequence_of_beats()
         {
             var a = new DuelDirector(new Rng(2024));
             var b = new DuelDirector(new Rng(2024));
             for (int i = 0; i < 20 && !a.IsOver; i++)
             {
-                Assert.Equal(a.Phase, b.Phase);
+                Assert.That(b.Phase, Is.EqualTo(a.Phase));
                 if (a.Phase == DuelPhase.PlayerRiposte)
                 {
                     var riposteA = a.ResolveRiposte(Strokes(GestureSymbol.Horizontal));
                     var riposteB = b.ResolveRiposte(Strokes(GestureSymbol.Horizontal));
-                    Assert.Equal(riposteA, riposteB);
+                    Assert.That(riposteB, Is.EqualTo(riposteA));
                     continue;
                 }
-                Assert.Equal(a.CurrentBeat.EnemyAction, b.CurrentBeat.EnemyAction);
-                Assert.Equal(a.CurrentBeat.Symbol, b.CurrentBeat.Symbol);
+                Assert.That(b.CurrentBeat.EnemyAction, Is.EqualTo(a.CurrentBeat.EnemyAction));
+                Assert.That(b.CurrentBeat.Symbol, Is.EqualTo(a.CurrentBeat.Symbol));
                 a.Resolve(Strokes(a.CurrentBeat.Symbol));
                 b.Resolve(Strokes(b.CurrentBeat.Symbol));
             }
@@ -322,56 +322,56 @@ namespace UnityRonin.Core.Tests
             return null;
         }
 
-        [Fact]
+        [Test]
         public void Resolve_throws_while_a_riposte_window_is_open()
         {
             var duel = ReachRiposte();
             Assert.Throws<InvalidOperationException>(() => duel.Resolve(Strokes()));
         }
 
-        [Fact]
+        [Test]
         public void ResolveRiposte_throws_while_awaiting_an_enemy_beat()
         {
             var duel = new DuelDirector(new Rng(1));
-            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.EnemyBeat));
             Assert.Throws<InvalidOperationException>(() => duel.ResolveRiposte(Strokes()));
         }
 
-        [Fact]
+        [Test]
         public void Resolve_throws_once_the_duel_is_over()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel, playerHealth: 1);
             duel.Resolve(Strokes(GestureSymbol.Horizontal)); // matches, not perpendicular: PlayerHit, 1 health -> 0
-            Assert.True(duel.IsOver);
+            Assert.That(duel.IsOver, Is.True);
             Assert.Throws<InvalidOperationException>(() => duel.Resolve(Strokes()));
         }
 
-        [Fact]
+        [Test]
         public void ResolveRiposte_throws_once_the_duel_is_over()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel, playerHealth: 1);
             duel.Resolve(Strokes(GestureSymbol.Horizontal));
-            Assert.True(duel.IsOver);
+            Assert.That(duel.IsOver, Is.True);
             Assert.Throws<InvalidOperationException>(() => duel.ResolveRiposte(Strokes()));
         }
 
-        [Fact]
+        [Test]
         public void Constructor_throws_for_a_null_rng()
         {
             Assert.Throws<ArgumentNullException>(() => new DuelDirector(null));
         }
 
-        [Fact]
+        [Test]
         public void PlayerWon_is_false_when_the_player_reaches_zero_health()
         {
             FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel, playerHealth: 1);
             duel.Resolve(Strokes(GestureSymbol.Horizontal));
-            Assert.Equal(0, duel.PlayerHealth);
-            Assert.True(duel.IsOver);
-            Assert.False(duel.PlayerWon);
+            Assert.That(duel.PlayerHealth, Is.EqualTo(0));
+            Assert.That(duel.IsOver, Is.True);
+            Assert.That(duel.PlayerWon, Is.False);
         }
 
-        [Fact]
+        [Test]
         public void A_landed_riposte_with_chained_alternating_strokes_deals_a_bonus_hit_each()
         {
             for (uint seed = 1; seed < 10000; seed++)
@@ -383,13 +383,13 @@ namespace UnityRonin.Core.Tests
                 var outcome = duel.ResolveRiposte(Strokes(GestureSymbol.Horizontal, GestureSymbol.Vertical, GestureSymbol.Horizontal));
                 if (outcome != DuelOutcome.PlayerRiposteLanded) continue;
 
-                Assert.Equal(2, duel.EnemyHealth); // base hit + 2 bonus combo hits, from a starting 5
+                Assert.That(duel.EnemyHealth, Is.EqualTo(2)); // base hit + 2 bonus combo hits, from a starting 5
                 return;
             }
             Assert.Fail("No seed under 10000 produced a riposte land with this chain.");
         }
 
-        [Fact]
+        [Test]
         public void A_repeated_shape_in_a_riposte_chain_breaks_the_combo()
         {
             for (uint seed = 1; seed < 10000; seed++)
@@ -401,45 +401,45 @@ namespace UnityRonin.Core.Tests
                 var outcome = duel.ResolveRiposte(Strokes(GestureSymbol.Horizontal, GestureSymbol.Horizontal, GestureSymbol.Vertical));
                 if (outcome != DuelOutcome.PlayerRiposteLanded) continue;
 
-                Assert.Equal(4, duel.EnemyHealth); // base hit only; the chain breaks at the repeat, from a starting 5
+                Assert.That(duel.EnemyHealth, Is.EqualTo(4)); // base hit only; the chain breaks at the repeat, from a starting 5
                 return;
             }
             Assert.Fail("No seed under 10000 produced a riposte land with this chain.");
         }
 
-        [Fact]
+        [Test]
         public void A_countered_riposte_on_the_players_last_health_ends_the_duel()
         {
             var duel = ReachRiposteOutcome(DuelOutcome.PlayerRiposteCountered, out var outcome, playerHealth: 1);
-            Assert.Equal(DuelOutcome.PlayerRiposteCountered, outcome);
-            Assert.Equal(0, duel.PlayerHealth);
-            Assert.True(duel.IsOver);
-            Assert.False(duel.PlayerWon);
+            Assert.That(outcome, Is.EqualTo(DuelOutcome.PlayerRiposteCountered));
+            Assert.That(duel.PlayerHealth, Is.EqualTo(0));
+            Assert.That(duel.IsOver, Is.True);
+            Assert.That(duel.PlayerWon, Is.False);
         }
 
-        [Fact]
+        [Test]
         public void After_a_riposte_timeout_phase_returns_to_enemy_beat_with_a_fresh_beat()
         {
             var duel = ReachRiposteThenFreshBeat(Strokes(), DuelOutcome.PlayerRiposteTimedOut);
-            Assert.NotNull(duel);
-            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
+            Assert.That(duel, Is.Not.Null);
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.EnemyBeat));
         }
 
-        [Fact]
+        [Test]
         public void After_a_riposte_retreat_phase_returns_to_enemy_beat_with_a_fresh_beat()
         {
             var duel = ReachRiposteThenFreshBeat(Strokes(GestureSymbol.Horizontal), DuelOutcome.PlayerRiposteRetreated,
                 retreatChance: 1f);
-            Assert.NotNull(duel);
-            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
+            Assert.That(duel, Is.Not.Null);
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.EnemyBeat));
         }
 
-        [Fact]
+        [Test]
         public void After_a_countered_riposte_phase_returns_to_enemy_beat_with_a_fresh_beat()
         {
             var duel = ReachRiposteThenFreshBeat(Strokes(GestureSymbol.Horizontal), DuelOutcome.PlayerRiposteCountered);
-            Assert.NotNull(duel);
-            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
+            Assert.That(duel, Is.Not.Null);
+            Assert.That(duel.Phase, Is.EqualTo(DuelPhase.EnemyBeat));
         }
 
         private static GestureSymbol Perpendicular(GestureSymbol symbol) => symbol switch
