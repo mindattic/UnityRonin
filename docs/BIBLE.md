@@ -1,7 +1,7 @@
 ---
 codex: 1
 project: UnityRonin
-code: UR
+code: U.RON
 layer: bible
 status: living
 updated: 2026-10-11
@@ -9,14 +9,14 @@ updated: 2026-10-11
 
 # Unity Ronin (UR): Bible
 
-## 1. The one sentence {#UR-§1}
+## 1. The one sentence {#U.RON-§1}
 Unity Ronin is a Unity 6 portrait mobile game where a Samurai is explored one-thumb, dragging a
 transparent analog stick that covers the bottom half of the screen, and fought one-thumb, drawing
 calligraphy-stroke gestures — four cuts and a thrust, the same five techniques both sides use — to
 parry or strike through a telegraphed katana duel, where a successful parry opens a slowed-time
 riposte window to press the attack.
 
-## 2. The product promise {#UR-§2}
+## 2. The product promise {#U.RON-§2}
 - **One hand, no buttons.** Every input is either a drag on the bottom-half stick or a swipe anywhere
   on screen. There is no on-screen button, no virtual D-pad overlay, no tap-to-target.
 - **Explore freely.** The stick drives camera-relative third-person movement; the Samurai runs where
@@ -40,7 +40,7 @@ riposte window to press the attack.
   parry — riposte, repeat, until one side's health runs out.
 - It is a touch-only mobile game, portrait orientation, locked (no landscape, no autorotate).
 
-## 3. What it is NOT {#UR-§3}
+## 3. What it is NOT {#U.RON-§3}
 - **Not a twin-stick or button-combo brawler.** There is exactly one drag surface and one swipe
   surface; never both live at once, and neither is a tap-target or an icon to press.
 - **Not free camera.** The player never drags to look around; `SmartFollowCamera` owns every camera
@@ -51,7 +51,7 @@ riposte window to press the attack.
   game files, per [HOUSE-LAW-3](../../MindAttic.HouseRules.md#HOUSE-LAW-3) in spirit and
   [[project_unityeve]]'s own convention.
 
-## 4. Architecture canon {#UR-§4}
+## 4. Architecture canon {#U.RON-§4}
 
 ```text
  ┌─────────────────────────────────┐   ┌───────────────────────────────────────┐
@@ -87,43 +87,43 @@ riposte window to press the attack.
 - **Content:** `DemoContentBuilder` generates every GameObject, wiring, and the scene file,
   deterministically, from primitives.
 
-## 5. The Laws {#UR-§5}
+## 5. The Laws {#U.RON-§5}
 This project inherits the org-wide laws in [MindAttic.HouseRules.md](../../MindAttic.HouseRules.md),
 including HOUSE-LAW-1 (whole-number versions, `version.txt`), HOUSE-LAW-8 (done is verified) and
 HOUSE-LAW-10 (commit to main).
 
-### {#UR-LAW-1} Core has no UnityEngine
+### {#U.RON-LAW-1} Core has no UnityEngine
 `UnityRonin.Core` is `noEngineReferences: true` and compiles as netstandard2.1 under `dotnet test`.
 All randomness goes through the seeded `Rng`. *(Source: asmdef; test `Same_seed_replays_the_identical_sequence`.)*
 
-### {#UR-LAW-2} The hysteresis band cannot flicker
+### {#U.RON-LAW-2} The hysteresis band cannot flicker
 `EngageGate` requires `exitRadius > enterRadius`, and only releases past the exit radius once engaged,
 so standing at the boundary never toggles stance on and off every frame. *(Test
 `Stays_engaged_inside_the_hysteresis_band_so_it_cannot_flicker_at_the_boundary`, `Rejects_an_exit_radius_that_would_allow_flicker`.)*
 
-### {#UR-LAW-3} Exactly one input surface is live at a time
+### {#U.RON-LAW-3} Exactly one input surface is live at a time
 `RoninGameController` disables the joystick zone and enables the swipe zone the instant a duel starts,
 and reverses it the instant the duel ends. Neither `VirtualJoystick` nor `SwipeInputReader` decides
 this for itself. *(Source: `RoninGameController.StartDuel/OnDuelEnded`.)*
 
-### {#UR-LAW-4} A duel beat is won or lost by the gesture alone
+### {#U.RON-LAW-4} A duel beat is won or lost by the gesture alone
 `DuelDirector.Resolve`/`ResolveRiposte` take only the classified `GestureStroke`s (or an empty list on
 timeout) and return a pure outcome; neither reads a transform, a collider, or wall-clock time itself.
 The presentation layer owns the clock, including the riposte window's `Time.timeScale` slow-motion —
 Core only knows `Phase` and `RiposteWindowSeconds`, never how "slow" feels. *(Tests in
 `DuelDirectorTests`.)*
 
-### {#UR-LAW-5} Generated content is regenerated, not hand-edited
+### {#U.RON-LAW-5} Generated content is regenerated, not hand-edited
 Edit `DemoContentBuilder`, then re-run `UnityRonin/Build Demo Scene`. A hand edit to `Demo.unity` is
 lost on the next build.
 
-### {#UR-LAW-6} Free assets only
+### {#U.RON-LAW-6} Free assets only
 Every third-party file is CC0 or OFL and listed in `CREDITS.md`. The one exception to primitives-only
 is the duel telegraph's font (Yuji Syuku, OFL — `CREDITS.md`), needed for the gesture glyphs to read
 as real calligraphy; everything else stays primitives on purpose, so the movement and duel feel are
 proven before any more art is committed.
 
-### {#UR-LAW-7} Verification means an actual device, not just batch mode
+### {#U.RON-LAW-7} Verification means an actual device, not just batch mode
 `-nographics` never renders a single pixel and runs uncapped (observed ~10,000 FPS with nothing to draw)
 — it cannot catch a rendering bug or a physics bug that only appears at a real frame rate. Treat a batch
 compile and a headless autoplay pass as necessary, not sufficient: install the real build
@@ -131,7 +131,7 @@ compile and a headless autoplay pass as necessary, not sufficient: install the r
 *(This is how §6's bugs 6–8 were found — a dangling render pipeline reference, a blown-out ground
 material, and a frame-rate-dependent movement stall — none visible to `-nographics`.)*
 
-## 6. Verified state {#UR-§6}
+## 6. Verified state {#U.RON-§6}
 - `dotnet test Tests/Core.Tests`: 45 passing — stick dead zone/clamp, camera-relative heading, engage
   hysteresis, gesture classification (including the Thrust tap), seeded RNG, the full duel scoring
   matrix (cut cross-blocks, thrust-vs-thrust, guard matches), every riposte branch (landed, countered,
@@ -203,7 +203,7 @@ material, and a frame-rate-dependent movement stall — none visible to `-nograp
   under a real thumb — that is not something any amount of automated testing or agent work can
   substitute for. See README "Playtest on a phone" for how to get the build onto one.
 
-## 7. Active frontier {#UR-§7}
+## 7. Active frontier {#U.RON-§7}
 - An owner playtest for feel on a touch device — automated testing (autoplay, on-device ADB injection)
   only proves the wiring works, never the feel. This is a hard limit: it genuinely requires a human.
   The riposte combo especially needs a real thumb's judgment: is the slow-motion window long enough,
@@ -219,7 +219,7 @@ material, and a frame-rate-dependent movement stall — none visible to `-nograp
 - Portrait UI polish: a health readout for both combatants during a duel, and some sense of combo
   count/length during a riposte chain.
 
-## 8. Quality bar {#UR-§8}
+## 8. Quality bar {#U.RON-§8}
 A change is done when all of these hold:
 1. `tools/test.ps1` is green.
 2. `tools/test.ps1 -Compile` is green.
@@ -227,7 +227,7 @@ A change is done when all of these hold:
 4. `docs/USER_STORIES.md` is updated.
 5. It is committed once, directly to `main`.
 
-## 9. Glossary {#UR-§9}
+## 9. Glossary {#U.RON-§9}
 - **Stick zone:** the invisible RectTransform covering the bottom half of the screen that owns the
   transparent analog stick while exploring.
 - **Swipe zone:** the full-screen RectTransform that reads one drawn gesture (a drag-and-release,
