@@ -11,7 +11,7 @@ updated: 2026-10-11
 # Unity Ronin: User stories
 
 > **Status:** ✅ verified (a named test or batch-mode check proves it) · 🟡 partial · ⬜ planned.
-> **Evidence:** `TestName` = xUnit in `Tests/Core.Tests`; `autoplay` = `tools/autoplay.ps1`'s
+> **Evidence:** `TestName` = NUnit in `Tests/Core.Tests`; `autoplay` = `tools/autoplay.ps1`'s
 > `-batchmode -nographics -autoplay` run, which drives `VirtualJoystick`/`SwipeInputReader` through
 > their real pointer-handler methods — proves the code path fires correctly, not that it feels right
 > under a real thumb (that still needs an owner playtest, BIBLE §7).
@@ -101,3 +101,7 @@ techniques, mirrored. This is the duel's real combo system (see `docs/BIBLE.md` 
 | U.RON-T5 | 2026-10-14 | chore | open | NUnit tests for SelfPlayInput's scripted duel answers staying in sync with DuelDirector (Assets/UnityRonin/Runtime/Game/SelfPlayInput.cs CorrectResponse and Perpendicular, currently private in the Unity-only Runtime assembly, so either move that pure mapping into Core or cover it with a Unity EditMode test): for every DuelAction x GestureSymbol beat, the correct response really parries or strikes when fed to DuelDirector and the alwaysLose response never does; the -autoplay/-demo PASS depends on this hand-copied mirror of the scoring rules and it will silently drift if the rules change | — |
 | U.RON-T6 | 2026-10-16 | chore | closed | install.ps1 adds this repo's 15 .prose/commands stubs for the shared global commands, so any LLM client finds them | mindattic-agent-standard/install.ps1 run 2026-10-16 |
 | U.RON-T7 | 2026-10-16 | chore | closed | Core tests use NUnit instead of xUnit (the MindAttic global test rule): Tests/Core.Tests packages and every test converted, same test count | 866cb76 / Tests/Core.Tests |
+| U.RON-T8 | 2026-10-16 | chore | open | Bug hunt: run an exhaustive /bughunt over the whole repo and fix every real bug found (each fix under its own fix ticket), then hunt again; close this only when a full pass finds nothing | user request 2026-10-16: approved repo sweep |
+| U.RON-T9 | 2026-10-16 | chore | open | Run the full unit test suite and fix every failure (each under its own fix ticket) until it passes; put the passing run in --ref. No test project: close this wont-do saying so | user request 2026-10-16: approved repo sweep |
+| U.RON-T10 | 2026-10-16 | chore | open | Clean up code and docs: remove dead code, stale comments and outdated or duplicated docs, and simplify where behaviour doesn't change (/simplify); tests stay green | user request 2026-10-16: approved repo sweep |
+| U.RON-T11 | 2026-10-16 | docs | open | Bring README.md up to date with the code as it is now (what it is, setup, usage, commands, current state), following codex-standard/README-STYLE.md; README.htm regenerated if the repo has one | user request 2026-10-16: approved repo sweep |
