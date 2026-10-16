@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityRonin.Core.Combat;
 using UnityRonin.Core.Util;
@@ -9,11 +10,12 @@ namespace UnityRonin.Core.Tests
     {
         private static readonly GesturePoint Origin = new GesturePoint(0f, 0f);
 
-        private static DuelDirector FindBeat(DuelAction action, GestureSymbol symbol, out DuelDirector duel)
+        private static DuelDirector FindBeat(DuelAction action, GestureSymbol symbol, out DuelDirector duel,
+            int playerHealth = 3)
         {
             for (uint seed = 1; seed < 10000; seed++)
             {
-                duel = new DuelDirector(new Rng(seed));
+                duel = new DuelDirector(new Rng(seed), playerHealth: playerHealth);
                 if (duel.CurrentBeat.EnemyAction == action && duel.CurrentBeat.Symbol == symbol) return duel;
             }
             duel = null;
@@ -37,11 +39,11 @@ namespace UnityRonin.Core.Tests
         /// <summary>Searches for a seed where resolving a riposte (after a guaranteed parry) yields exactly
         /// <paramref name="desiredOutcome"/>, with the enemy's counter never allowed to just retreat.</summary>
         private static DuelDirector ReachRiposteOutcome(DuelOutcome desiredOutcome, out DuelOutcome actualOutcome,
-            int enemyHealth = 3)
+            int enemyHealth = 3, int playerHealth = 3)
         {
             for (uint seed = 1; seed < 10000; seed++)
             {
-                var duel = new DuelDirector(new Rng(seed), enemyHealth: enemyHealth, retreatChance: 0f);
+                var duel = new DuelDirector(new Rng(seed), playerHealth: playerHealth, enemyHealth: enemyHealth, retreatChance: 0f);
                 if (duel.CurrentBeat.EnemyAction != DuelAction.Attack || duel.CurrentBeat.Symbol != GestureSymbol.Horizontal) continue;
                 duel.Resolve(Strokes(GestureSymbol.Vertical));
                 var outcome = duel.ResolveRiposte(Strokes(GestureSymbol.Horizontal));
@@ -292,6 +294,152 @@ namespace UnityRonin.Core.Tests
                 a.Resolve(Strokes(a.CurrentBeat.Symbol));
                 b.Resolve(Strokes(b.CurrentBeat.Symbol));
             }
+        }
+
+        /// <summary>Finds a seed whose first beat is a Horizontal attack, parries it, resolves the riposte
+        /// window with <paramref name="riposteStrokes"/> to land exactly <paramref name="desiredOutcome"/>,
+        /// and confirms the duel landed back on a freshly drawn beat rather than the stale one that was
+        /// standing when the riposte window opened.</summary>
+        private static DuelDirector ReachRiposteThenFreshBeat(IReadOnlyList<GestureStroke> riposteStrokes,
+            DuelOutcome desiredOutcome, float retreatChance = 0f)
+        {
+            for (uint seed = 1; seed < 10000; seed++)
+            {
+                var duel = new DuelDirector(new Rng(seed), retreatChance: retreatChance);
+                if (duel.CurrentBeat.EnemyAction != DuelAction.Attack || duel.CurrentBeat.Symbol != GestureSymbol.Horizontal) continue;
+                var beatDuringRiposte = duel.CurrentBeat;
+                duel.Resolve(Strokes(GestureSymbol.Vertical));
+                if (duel.Phase != DuelPhase.PlayerRiposte) continue;
+
+                var outcome = duel.ResolveRiposte(riposteStrokes);
+                if (outcome != desiredOutcome) continue;
+                if (duel.Phase != DuelPhase.EnemyBeat) continue;
+                if (duel.CurrentBeat.EnemyAction == beatDuringRiposte.EnemyAction &&
+                    duel.CurrentBeat.Symbol == beatDuringRiposte.Symbol) continue;
+
+                return duel;
+            }
+            return null;
+        }
+
+        [Fact]
+        public void Resolve_throws_while_a_riposte_window_is_open()
+        {
+            var duel = ReachRiposte();
+            Assert.Throws<InvalidOperationException>(() => duel.Resolve(Strokes()));
+        }
+
+        [Fact]
+        public void ResolveRiposte_throws_while_awaiting_an_enemy_beat()
+        {
+            var duel = new DuelDirector(new Rng(1));
+            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
+            Assert.Throws<InvalidOperationException>(() => duel.ResolveRiposte(Strokes()));
+        }
+
+        [Fact]
+        public void Resolve_throws_once_the_duel_is_over()
+        {
+            FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel, playerHealth: 1);
+            duel.Resolve(Strokes(GestureSymbol.Horizontal)); // matches, not perpendicular: PlayerHit, 1 health -> 0
+            Assert.True(duel.IsOver);
+            Assert.Throws<InvalidOperationException>(() => duel.Resolve(Strokes()));
+        }
+
+        [Fact]
+        public void ResolveRiposte_throws_once_the_duel_is_over()
+        {
+            FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel, playerHealth: 1);
+            duel.Resolve(Strokes(GestureSymbol.Horizontal));
+            Assert.True(duel.IsOver);
+            Assert.Throws<InvalidOperationException>(() => duel.ResolveRiposte(Strokes()));
+        }
+
+        [Fact]
+        public void Constructor_throws_for_a_null_rng()
+        {
+            Assert.Throws<ArgumentNullException>(() => new DuelDirector(null));
+        }
+
+        [Fact]
+        public void PlayerWon_is_false_when_the_player_reaches_zero_health()
+        {
+            FindBeat(DuelAction.Attack, GestureSymbol.Horizontal, out var duel, playerHealth: 1);
+            duel.Resolve(Strokes(GestureSymbol.Horizontal));
+            Assert.Equal(0, duel.PlayerHealth);
+            Assert.True(duel.IsOver);
+            Assert.False(duel.PlayerWon);
+        }
+
+        [Fact]
+        public void A_landed_riposte_with_chained_alternating_strokes_deals_a_bonus_hit_each()
+        {
+            for (uint seed = 1; seed < 10000; seed++)
+            {
+                var duel = new DuelDirector(new Rng(seed), enemyHealth: 5, retreatChance: 0f);
+                if (duel.CurrentBeat.EnemyAction != DuelAction.Attack || duel.CurrentBeat.Symbol != GestureSymbol.Horizontal) continue;
+                duel.Resolve(Strokes(GestureSymbol.Vertical));
+
+                var outcome = duel.ResolveRiposte(Strokes(GestureSymbol.Horizontal, GestureSymbol.Vertical, GestureSymbol.Horizontal));
+                if (outcome != DuelOutcome.PlayerRiposteLanded) continue;
+
+                Assert.Equal(2, duel.EnemyHealth); // base hit + 2 bonus combo hits, from a starting 5
+                return;
+            }
+            Assert.Fail("No seed under 10000 produced a riposte land with this chain.");
+        }
+
+        [Fact]
+        public void A_repeated_shape_in_a_riposte_chain_breaks_the_combo()
+        {
+            for (uint seed = 1; seed < 10000; seed++)
+            {
+                var duel = new DuelDirector(new Rng(seed), enemyHealth: 5, retreatChance: 0f);
+                if (duel.CurrentBeat.EnemyAction != DuelAction.Attack || duel.CurrentBeat.Symbol != GestureSymbol.Horizontal) continue;
+                duel.Resolve(Strokes(GestureSymbol.Vertical));
+
+                var outcome = duel.ResolveRiposte(Strokes(GestureSymbol.Horizontal, GestureSymbol.Horizontal, GestureSymbol.Vertical));
+                if (outcome != DuelOutcome.PlayerRiposteLanded) continue;
+
+                Assert.Equal(4, duel.EnemyHealth); // base hit only; the chain breaks at the repeat, from a starting 5
+                return;
+            }
+            Assert.Fail("No seed under 10000 produced a riposte land with this chain.");
+        }
+
+        [Fact]
+        public void A_countered_riposte_on_the_players_last_health_ends_the_duel()
+        {
+            var duel = ReachRiposteOutcome(DuelOutcome.PlayerRiposteCountered, out var outcome, playerHealth: 1);
+            Assert.Equal(DuelOutcome.PlayerRiposteCountered, outcome);
+            Assert.Equal(0, duel.PlayerHealth);
+            Assert.True(duel.IsOver);
+            Assert.False(duel.PlayerWon);
+        }
+
+        [Fact]
+        public void After_a_riposte_timeout_phase_returns_to_enemy_beat_with_a_fresh_beat()
+        {
+            var duel = ReachRiposteThenFreshBeat(Strokes(), DuelOutcome.PlayerRiposteTimedOut);
+            Assert.NotNull(duel);
+            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
+        }
+
+        [Fact]
+        public void After_a_riposte_retreat_phase_returns_to_enemy_beat_with_a_fresh_beat()
+        {
+            var duel = ReachRiposteThenFreshBeat(Strokes(GestureSymbol.Horizontal), DuelOutcome.PlayerRiposteRetreated,
+                retreatChance: 1f);
+            Assert.NotNull(duel);
+            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
+        }
+
+        [Fact]
+        public void After_a_countered_riposte_phase_returns_to_enemy_beat_with_a_fresh_beat()
+        {
+            var duel = ReachRiposteThenFreshBeat(Strokes(GestureSymbol.Horizontal), DuelOutcome.PlayerRiposteCountered);
+            Assert.NotNull(duel);
+            Assert.Equal(DuelPhase.EnemyBeat, duel.Phase);
         }
 
         private static GestureSymbol Perpendicular(GestureSymbol symbol) => symbol switch
