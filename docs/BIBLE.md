@@ -49,7 +49,7 @@ riposte window to press the attack.
   sound) — a vertical slice proving the movement and the duel feel are right before investing in art.
 - **Not built on paid or non-redistributable assets.** No Mixamo, no Asset Store packs, no ripped
   game files, per [HOUSE-LAW-3](../../MindAttic.HouseRules.md#HOUSE-LAW-3) in spirit and
-  [[project_unityeve]]'s own convention.
+  [[project_unity_eve]]'s own convention.
 
 ## 4. Architecture canon {#U.RON-§4}
 
