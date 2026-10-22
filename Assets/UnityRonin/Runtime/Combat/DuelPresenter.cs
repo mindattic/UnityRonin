@@ -125,6 +125,7 @@ namespace UnityRonin.Runtime.Combat
         {
             Time.timeScale = 1f;
             if (_running != null) StopCoroutine(_running);
+            _telegraph.Hide(); // the stopped coroutine would otherwise leave its prompt on screen
             if (IsActive) End();
         }
     }
