@@ -30,7 +30,7 @@ namespace UnityRonin.Runtime.Combat
 
         public void HopBack(Vector3 awayFromPosition)
         {
-            if (_running != null) StopCoroutine(_running);
+            CancelRunning();
             Vector3 away = transform.position - awayFromPosition;
             away.y = 0f;
             if (away.sqrMagnitude < 0.01f) away = -transform.forward;
@@ -39,8 +39,16 @@ namespace UnityRonin.Runtime.Combat
 
         public void FlashCounter()
         {
-            if (_running != null) StopCoroutine(_running);
+            CancelRunning();
             _running = StartCoroutine(Flash());
+        }
+
+        // Stopping a flash mid-way would leave the enemy stuck in the flash color.
+        private void CancelRunning()
+        {
+            if (_running != null) StopCoroutine(_running);
+            _running = null;
+            if (_renderer != null) _renderer.material.color = _baseColor;
         }
 
         private IEnumerator Hop(Vector3 offset)
