@@ -41,6 +41,12 @@ namespace UnityRonin.Runtime.Player
             if (_drawnKatana != null) _drawnKatana.SetActive(false);
             if (_animator != null) _animator.SetBool(DrawnHash, false);
             if (_swinging != null) { StopCoroutine(_swinging); _swinging = null; }
+            // A swing cut off mid-stroke would leave the blade at an arbitrary offset for the next draw.
+            if (_restPoseCaptured && _drawnKatana != null)
+            {
+                _drawnKatana.transform.localRotation = _restRotation;
+                _drawnKatana.transform.localPosition = _restPosition;
+            }
         }
 
         /// <summary>Swings the blade through each stroke of a drawn gesture in sequence — a chained combo
