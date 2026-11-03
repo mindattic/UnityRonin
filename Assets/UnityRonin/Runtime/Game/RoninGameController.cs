@@ -131,6 +131,9 @@ namespace UnityRonin.Runtime.Game
             if (away.sqrMagnitude < 0.01f) away = -enemy.transform.forward;
 
             Vector3 destination = enemy.transform.position + away.normalized * (enemy.ExitRadius + 1f);
+            // Keep the Samurai's own height: the enemy's origin is its capsule's center, the Samurai's is
+            // its feet, so the enemy's y would drop the Samurai back in mid-air.
+            destination.y = _locomotion.transform.position.y;
             _locomotion.Teleport(destination);
         }
     }

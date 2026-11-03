@@ -69,7 +69,7 @@ namespace UnityRonin.Editor
         {
             const string dir = "Assets/UnityRonin/Generated/Materials";
             System.IO.Directory.CreateDirectory(dir);
-            string path = $"{dir}/Matte_{ColorUtility.ToHtmlStringRGB(color)}_{smoothness:F2}.mat";
+            string path = $"{dir}/Matte_{ColorUtility.ToHtmlStringRGB(color)}_{smoothness.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}.mat";
 
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (material == null)
@@ -142,6 +142,10 @@ namespace UnityRonin.Editor
             var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Body";
             body.transform.SetParent(player.transform, false);
+            // The CharacterController's capsule spans local y 0..2 (center 1, height 2), so the player's
+            // origin is at its feet; the 2-unit primitive capsule is centered on its own origin, so it has
+            // to sit at y=1 too or half of it renders sunk below the ground.
+            body.transform.localPosition = new Vector3(0f, 1f, 0f);
             body.transform.localScale = new Vector3(0.6f, 1f, 0.6f);
             body.GetComponent<Renderer>().sharedMaterial = MakeMatteMaterial(new Color(0.75f, 0.73f, 0.68f));
             Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
@@ -149,10 +153,10 @@ namespace UnityRonin.Editor
             // Cosmetic props only, never colliders: a collider parented inside the player's own
             // CharacterController radius self-collides with it and can jam movement entirely.
             var sheathed = BuildKatana("KatanaSheathed", player.transform,
-                localPosition: new Vector3(0.4f, 0.3f, -0.25f), localRotation: Quaternion.Euler(0f, 0f, 10f));
+                localPosition: new Vector3(0.4f, 1.3f, -0.25f), localRotation: Quaternion.Euler(0f, 0f, 10f));
 
             var drawn = BuildKatana("KatanaDrawn", player.transform,
-                localPosition: new Vector3(0.35f, 0.85f, 0.25f), localRotation: Quaternion.Euler(-70f, 15f, -15f));
+                localPosition: new Vector3(0.35f, 1.85f, 0.25f), localRotation: Quaternion.Euler(-70f, 15f, -15f));
             drawn.SetActive(false);
 
             player.AddComponent<SamuraiLocomotion>();
@@ -293,6 +297,9 @@ namespace UnityRonin.Editor
             strokeText.fontSize = 110f;
             strokeText.alignment = TextAlignmentOptions.Center;
             strokeText.color = Color.white;
+            // Purely a display: as a raycast target it sits above the sibling SwipeZone and swallows any
+            // swipe that starts on the glyph (SwipeZone isn't its parent, so the press never reaches it).
+            strokeText.raycastTarget = false;
 
             telegraph = telegraphGo.AddComponent<DuelTelegraph>();
             BindPrivate(telegraph, "_stroke", strokeRect);
