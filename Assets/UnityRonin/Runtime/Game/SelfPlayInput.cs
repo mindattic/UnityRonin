@@ -16,7 +16,8 @@ namespace UnityRonin.Runtime.Game
     /// </summary>
     internal static class SelfPlayInput
     {
-        private const float DragRadiusPixels = 140f;
+        // How far along the stick's travel the scripted thumb drags (140 of the stick's 160 canvas units).
+        private const float DragFraction = 0.875f;
 
         public static IEnumerator WalkToward(VirtualJoystick joystick, SamuraiLocomotion locomotion,
             Transform cameraYawSource, Transform player, Transform target, DuelPresenter duelPresenter,
@@ -42,12 +43,14 @@ namespace UnityRonin.Runtime.Game
                 if (toTarget.sqrMagnitude > 0.01f)
                 {
                     Vector3 worldDir = toTarget.normalized;
-                    float yaw = cameraYawSource.eulerAngles.y * Mathf.Deg2Rad;
+                    // The yaw the locomotion reads the stick against: latched when the drag began, not
+                    // the camera's live yaw (see SamuraiLocomotion.SteeringHeld).
+                    float yaw = locomotion.SteeringYaw * Mathf.Deg2Rad;
                     // Inverse of CameraRelativeMotion.ToWorldDirection: rotate the desired world heading
-                    // back into stick space by the camera's yaw.
+                    // back into stick space by that yaw.
                     float stickX = worldDir.x * Mathf.Cos(yaw) - worldDir.z * Mathf.Sin(yaw);
                     float stickY = worldDir.x * Mathf.Sin(yaw) + worldDir.z * Mathf.Cos(yaw);
-                    pointer.position = origin + new Vector2(stickX, stickY) * DragRadiusPixels;
+                    pointer.position = origin + new Vector2(stickX, stickY) * (joystick.RadiusScreenPixels * DragFraction);
                     joystick.OnDrag(pointer);
                 }
 

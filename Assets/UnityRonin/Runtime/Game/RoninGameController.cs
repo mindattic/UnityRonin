@@ -25,6 +25,10 @@ namespace UnityRonin.Runtime.Game
         [SerializeField] private GameObject _swipeZone;
         [SerializeField] private EnemyEngageZone[] _enemies;
         [SerializeField] private uint _duelSeed = 1;
+        // How far apart (horizontally, metres) the duel squares the two combatants up: well inside every
+        // enemy's enter radius, so the closing step never strays toward the exit radius.
+        [SerializeField] private float _duelStandoff = 2f;
+        [SerializeField] private float _enemyTurnDegreesPerSecond = 360f;
 
         private EnemyEngageZone _activeEnemy;
 
@@ -44,11 +48,14 @@ namespace UnityRonin.Runtime.Game
             if (_duelPresenter.IsActive)
             {
                 _locomotion.StickInput = StickVector.Zero;
+                _locomotion.SteeringHeld = false;
+                SquareUp();
                 return;
             }
 
             _locomotion.AcceptsStickInput = true;
             _locomotion.StickInput = _joystick.Current;
+            _locomotion.SteeringHeld = _joystick.IsHeld;
 
             var nearest = FindNearestEngaged();
             if (nearest != null)
@@ -82,7 +89,8 @@ namespace UnityRonin.Runtime.Game
             _activeEnemy = enemy;
             _joystick.ForceRelease();
             _locomotion.AcceptsStickInput = false;
-            _locomotion.AutoMoveTarget = null;
+            _locomotion.SteeringHeld = false;
+            SquareUp();
             _camera.SetDuelFocus(enemy.transform);
             _joystickZone.SetActive(false);
             _swipeZone.SetActive(true);
@@ -109,6 +117,8 @@ namespace UnityRonin.Runtime.Game
             _duelPresenter.DuelEnded -= OnDuelEnded;
             _duelPresenter.BeatResolved -= OnBeatResolved;
             _camera.SetDuelFocus(null);
+            _locomotion.AutoMoveTarget = null;
+            _locomotion.AutoFaceTarget = null;
             _swipeZone.SetActive(false);
             _joystickZone.SetActive(true);
 
@@ -118,6 +128,34 @@ namespace UnityRonin.Runtime.Game
                 else Retreat(_activeEnemy);
             }
             _activeEnemy = null;
+        }
+
+        /// <summary>
+        /// The duel's automatic movement (BIBLE §2: "the game closes the distance and squares the two
+        /// combatants up"): the Samurai walks to <see cref="_duelStandoff"/> from the enemy along the line
+        /// between them and keeps facing it, and the enemy turns to face the Samurai. Re-aimed every frame,
+        /// so a riposte's hop back is followed and closed again.
+        /// </summary>
+        private void SquareUp()
+        {
+            if (_activeEnemy == null) return;
+            Transform player = _locomotion.transform;
+            Transform enemy = _activeEnemy.transform;
+
+            Vector3 fromEnemy = player.position - enemy.position;
+            fromEnemy.y = 0f;
+            if (fromEnemy.sqrMagnitude < 0.0001f) fromEnemy = enemy.forward;
+            fromEnemy.y = 0f;
+            if (fromEnemy.sqrMagnitude < 0.0001f) fromEnemy = Vector3.back;
+
+            Vector3 standoff = enemy.position + fromEnemy.normalized * _duelStandoff;
+            standoff.y = player.position.y;
+            _locomotion.AutoMoveTarget = standoff;
+            _locomotion.AutoFaceTarget = enemy.position;
+
+            Vector3 toPlayer = -fromEnemy;
+            enemy.rotation = Quaternion.RotateTowards(enemy.rotation,
+                Quaternion.LookRotation(toPlayer.normalized, Vector3.up), _enemyTurnDegreesPerSecond * Time.deltaTime);
         }
 
         /// <summary>

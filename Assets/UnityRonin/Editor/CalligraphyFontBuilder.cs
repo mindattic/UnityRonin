@@ -36,15 +36,31 @@ namespace UnityRonin.Editor
                 font, 90, 5, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, true);
             fontAsset.name = "YujiSyuku SDF";
 
+            // Rebuild in place when the asset already exists: deleting and re-creating it would give it a
+            // new GUID and break Demo.unity's reference until the scene was rebuilt (U.RON-T21). The old
+            // atlas and material sub-assets are dropped and the new ones persisted under the same main asset.
             var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(OutputPath);
-            if (existing != null) AssetDatabase.DeleteAsset(OutputPath);
-            AssetDatabase.CreateAsset(fontAsset, OutputPath);
+            TMP_FontAsset target;
+            if (existing != null)
+            {
+                foreach (var sub in AssetDatabase.LoadAllAssetRepresentationsAtPath(OutputPath))
+                    if (sub != null) AssetDatabase.RemoveObjectFromAsset(sub);
+                EditorUtility.CopySerialized(fontAsset, existing);
+                existing.name = fontAsset.name;
+                target = existing;
+            }
+            else
+            {
+                AssetDatabase.CreateAsset(fontAsset, OutputPath);
+                target = fontAsset;
+            }
             // CreateFontAsset builds the atlas texture and material as plain in-memory objects; without
             // persisting them as sub-assets, the font asset reloads from disk with a dangling, unassigned
             // atlas reference (UnassignedReferenceException the first time anything renders with this font).
             foreach (var atlas in fontAsset.atlasTextures)
-                if (atlas != null) AssetDatabase.AddObjectToAsset(atlas, fontAsset);
-            if (fontAsset.material != null) AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+                if (atlas != null) AssetDatabase.AddObjectToAsset(atlas, target);
+            if (fontAsset.material != null) AssetDatabase.AddObjectToAsset(fontAsset.material, target);
+            EditorUtility.SetDirty(target);
             AssetDatabase.SaveAssets();
             AssetDatabase.ImportAsset(OutputPath);
             Debug.Log($"[UnityRonin] Calligraphy font asset built at {OutputPath}");
