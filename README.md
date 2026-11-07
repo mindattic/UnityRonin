@@ -76,6 +76,10 @@ pwsh tools/demo.ps1       # windowed, watchable
 
 With the `-demo` flag, `RoninAutopilot` drives the Samurai and the duel through the real `VirtualJoystick` and `SwipeInputReader` pointer-handler methods, the same ones a touchscreen calls. It first loses one duel on purpose to check the player is knocked back out of range, then defeats each enemy, and quits with PASS or FAIL. That proves the explore, engage, duel, win or retreat loop fires correctly. It cannot prove the gestures feel right.
 
+## Headless mode
+
+Off by default. `UnityRonin.exe --headless` (or `MINDATTIC_HEADLESS=1`) is the shared MindAttic headless mode from Unity.Shared: the session is muted, the game runs in the background, vSync is off, and one `MINDATTIC_HEADLESS_READY UnityRonin` line is logged for scripts to wait on. The game has no menu, so it simply plays as usual. `pwsh tools/play-headless.ps1 -Wait` launches the built player that way with no window (via `..\Unity.Shared\tools\Start-Headless.ps1`, which adds `-batchmode -nographics` and a log file); `-demo` can be added to self-play the tour. Without the flag nothing changes.
+
 ## Playtest on a phone
 
 1. Run **UnityRonin > Build Android APK**, or `pwsh tools/unity.ps1 -Method UnityRonin.Editor.RoninBuild.BuildAndroid -Log build-android`. It writes `Build/Android/UnityRonin.apk`, signed with Unity's auto-generated debug keystore: fine for sideloading, not for a store.
